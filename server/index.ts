@@ -50,6 +50,11 @@ app.use((req, res, next) => {
     await initializeSystem(csvPath);
     log('System initialization complete');
 
+    // Serve static files first in production
+    if (app.get("env") !== "development") {
+      serveStatic(app);
+    }
+
     registerRoutes(app);
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -59,13 +64,9 @@ app.use((req, res, next) => {
       throw err;
     });
 
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
+    // Setup vite only in development
     if (app.get("env") === "development") {
       await setupVite(app, server);
-    } else {
-      serveStatic(app);
     }
 
     // Server is already listening on port 5000
