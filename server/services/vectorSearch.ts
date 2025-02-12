@@ -1,14 +1,13 @@
 
 import { AdviceEntry, VectorSearchResult } from './types';
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAI from 'openai';
 
 export class VectorSearch {
-  private openai: OpenAIApi;
+  private openai: OpenAI;
   private embeddings: { entry: AdviceEntry; vector: number[] }[] = [];
 
   constructor(apiKey: string) {
-    const configuration = new Configuration({ apiKey });
-    this.openai = new OpenAIApi(configuration);
+    this.openai = new OpenAI({ apiKey });
   }
 
   public async initialize(entries: AdviceEntry[]): Promise<void> {
@@ -20,11 +19,11 @@ export class VectorSearch {
   }
 
   private async getEmbedding(text: string): Promise<number[]> {
-    const response = await this.openai.createEmbedding({
+    const response = await this.openai.embeddings.create({
       model: "text-embedding-ada-002",
       input: text
     });
-    return response.data.data[0].embedding;
+    return response.data[0].embedding;
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
