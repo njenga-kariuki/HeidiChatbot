@@ -1,5 +1,5 @@
 
-import { parse } from 'csv-parse/sync';
+import { parse } from 'papaparse';
 import fs from 'fs';
 import { AdviceEntry } from './types';
 
@@ -19,20 +19,19 @@ export class DataLoader {
   public async loadData(filePath: string): Promise<void> {
     try {
       const csvData = fs.readFileSync(filePath, 'utf-8');
-      const records = parse(csvData, {
-        columns: true,
-        skip_empty_lines: true,
-        trim: true
+      const parseResult = parse(csvData, {
+        header: true,
+        skipEmptyLines: true,
+        transform: (value) => value.trim()
       });
 
-      this.adviceData = records.map((row: any) => ({
+      this.adviceData = parseResult.data.map((row: any) => ({
         category: row.Category,
         subCategory: row.SubCategory,
-        advice: row.Advice,
-        adviceContext: row.AdviceContext,
+        content: row.Content,
+        context: row.Context,
         sourceTitle: row.SourceTitle,
-        sourceLink: row.SourceLink,
-        sourceType: row.SourceType
+        sourceLink: row.SourceLink
       }));
     } catch (error) {
       throw new Error(`Failed to load advice data: ${error.message}`);

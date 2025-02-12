@@ -13,7 +13,7 @@ export class VectorSearch {
 
   public async initialize(entries: AdviceEntry[]): Promise<void> {
     for (const entry of entries) {
-      const searchText = `${entry.category} ${entry.subCategory} ${entry.advice}`;
+      const searchText = `${entry.category} ${entry.subCategory} ${entry.content}`;
       const vector = await this.getEmbedding(searchText);
       this.embeddings.push({ entry, vector });
     }
