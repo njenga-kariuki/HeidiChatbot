@@ -19,16 +19,26 @@ export class VectorSearch {
     try {
       // Create embeddings for unique categories
       const uniqueCategories = [...new Set(entries.map(e => e.category))];
+      console.log(`Processing ${uniqueCategories.length} unique categories...`);
       for (const category of uniqueCategories) {
+        console.log(`Getting embedding for category: ${category}`);
         const vector = await this.getEmbedding(category);
         this.categoryEmbeddings.set(category, vector);
       }
 
       // Create embeddings for each entry
-      for (const entry of entries) {
+      console.log(`Processing ${entries.length} entries...`);
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        console.log(`Getting embedding for entry ${i + 1}/${entries.length}: ${entry.category} - ${entry.subCategory}`);
         const searchText = this.constructSearchText(entry);
         const vector = await this.getEmbedding(searchText);
         this.embeddings.push({ entry, vector });
+        
+        // Log progress every 50 entries
+        if ((i + 1) % 50 === 0) {
+          console.log(`Progress: ${i + 1}/${entries.length} entries processed`);
+        }
       }
 
       console.log(`Vector initialization complete. Total embeddings: ${this.embeddings.length}`);
