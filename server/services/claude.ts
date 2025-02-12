@@ -82,7 +82,7 @@ const STAGE2_SYSTEM_PROMPT = `Transform the given response into Heidi Roizen's d
 Key Style Elements:
 - Lead with experience-based insight
 - Use direct, clear language
-- Include phrases like "Look..." or "Here's the thing..." to transition to key points
+- Include phrases like "Look..." or "Here's the thing..." to transition to key points (where logical;don't overuse)
 - Share real-world context without breaking confidentiality
 - Balance optimism with pragmatism
 - Use rhetorical questions to frame complex issues
@@ -93,12 +93,13 @@ Key Style Elements:
 - Stay professional while being approachable
 
 Guidelines:
+- Never include meta-commentary about writing style, content limitations, or acknowledge that you're adapting content; give the advice directly
 - Avoid over-casual language while maintaining conversational tone
 - Ground advice in practical experience
 - Address the core issue while acknowledging broader context
 - Use "I've seen" and "in my experience" to establish authority naturally
 - Break down complex topics into digestible insights
-- Maintain all source attributions and links from the original response
+- Maintain all source attributions and links from the original response, including source links at end with a natural transition
 
 Here are examples of this style:
 QUESTION: What should I do if my co-founder isn't pulling their weight?
@@ -116,45 +117,52 @@ The goal is to provide clear, experienced-based guidance while maintaining the a
 export async function generateStage1Response(query: string): Promise<string> {
   try {
     // Perform vector search
-    const searchResults = await vectorSearch.search(query);
+    const searchResults = await vectorSearch.search(query, 0.65);
 
     if (searchResults.length === 0) {
       return "I don't have any specific advice about this topic. I focus on providing insights based on my experiences in entrepreneurship, venture capital, and business leadership.";
     }
 
-    // Add search results to the prompt
-    const contextPrompt = `Based on the following relevant advice entries, provide a comprehensive response:
+     // Enhance the prompt to ensure comprehensive coverage
+      const contextPrompt = `You are Heidi Roizen. Based on the following relevant advice entries, provide a comprehensive response that covers ALL key aspects of ${query}. Important guidelines:
 
-${searchResults
-  .map(
-    (result, index) => `
-Entry ${index + 1}:
-Category: ${result.entry.category}
-SubCategory: ${result.entry.subCategory}
-Content: ${result.entry.advice}
-Context: ${result.entry.adviceContext}
-Source: ${result.entry.sourceTitle}
-SourceType: ${result.entry.sourceType}
-Link: ${result.entry.sourceLink}
-`,
-  )
-  .join("\n")}
+    1. Combine insights from ALL provided entries to give complete guidance
+    2. Include specific examples and context from your experience
+    3. Ensure advice is actionable and practical
+    4. Connect different pieces of advice into a coherent narrative
 
-Query: ${query}`;
+    Here are the relevant advice entries to draw from:
 
-    const completion = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
-      max_tokens: 2000,
-      temperature: 0.7,
-      system: STAGE1_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: contextPrompt }],
-    });
+    ${searchResults
+    .map(
+      (result, index) => `
+    Entry ${index + 1}:
+    Category: ${result.entry.category}
+    SubCategory: ${result.entry.subCategory}
+    Content: ${result.entry.advice}
+    Context: ${result.entry.adviceContext}
+    Source: ${result.entry.sourceTitle}
+    SourceType: ${result.entry.sourceType}
+    Link: ${result.entry.sourceLink}
+    `,
+    )
+    .join("\n")}
 
-    return completion.content[0].text;
-  } catch (error) {
-    throw new Error(`Stage 1 generation failed: ${error.message}`);
+    Query: ${query}`;
+
+      const completion = await anthropic.messages.create({
+        model: "claude-3-5-sonnet-latest",
+        max_tokens: 2000,
+        temperature: 0.7,
+        system: STAGE1_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: contextPrompt }],
+      });
+
+      return completion.content[0].text;
+    } catch (error) {
+      throw new Error(`Stage 1 generation failed: ${error.message}`);
+    }
   }
-}
 
 export async function generateStage2Response(
   stage1Response: string,

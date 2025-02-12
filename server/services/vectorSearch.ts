@@ -4,32 +4,34 @@ import OpenAI from 'openai';
 export class VectorSearch {
   private openai: OpenAI;
   private embeddings: { entry: AdviceEntry; vector: number[] }[] = [];
+  private categoryEmbeddings: Map<string, number[]> = new Map();
 
   constructor(apiKey: string) {
     this.openai = new OpenAI({ apiKey });
   }
 
+  private constructSearchText(entry: AdviceEntry): string {
+    return `${entry.category} ${entry.subCategory} ${entry.advice} ${entry.adviceContext}`.trim();
+  }
+
   public async initialize(entries: AdviceEntry[]): Promise<void> {
     console.log(`Starting vector initialization with ${entries.length} entries`);
-
     try {
-      for (const entry of entries) {
-        const searchText = `${entry.category} ${entry.subCategory} ${entry.content}`;
-        console.log('Processing entry:', {
-          category: entry.category,
-          subCategory: entry.subCategory,
-          contentLength: entry.content?.length || 0
-        });
+      // Create embeddings for unique categories
+      const uniqueCategories = [...new Set(entries.map(e => e.category))];
+      for (const category of uniqueCategories) {
+        const vector = await this.getEmbedding(category);
+        this.categoryEmbeddings.set(category, vector);
+      }
 
+      // Create embeddings for each entry
+      for (const entry of entries) {
+        const searchText = this.constructSearchText(entry);
         const vector = await this.getEmbedding(searchText);
         this.embeddings.push({ entry, vector });
       }
 
       console.log(`Vector initialization complete. Total embeddings: ${this.embeddings.length}`);
-      // Log a sample embedding to verify structure
-      if (this.embeddings.length > 0) {
-        console.log('Sample embedding vector length:', this.embeddings[0].vector.length);
-      }
     } catch (error) {
       console.error('Error during vector initialization:', error);
       throw error;
@@ -60,36 +62,64 @@ export class VectorSearch {
     console.log(`Searching for query: "${query}" with threshold ${threshold}`);
     console.log(`Current number of embeddings: ${this.embeddings.length}`);
 
-     try {
-        const queryVector = await this.getEmbedding(query);
+    try {
+      // Get the main query vector
+      const mainQueryVector = await this.getEmbedding(query);
 
-        // Get all results and their similarities before filtering
-        const allResults = this.embeddings
-          .map(({ entry, vector }) => ({
-            entry,
-            similarity: this.cosineSimilarity(queryVector, vector)
-          }))
-          .sort((a, b) => b.similarity - a.similarity);
-
-        // Log the top 3 similarities regardless of threshold
-        console.log('Top 3 similarities:', 
-          allResults.slice(0, 3).map(r => ({
-            similarity: r.similarity,
-            category: r.entry.category,
-            subCategory: r.entry.subCategory
-          }))
-        );
-
-        // Now filter and return results
-        const results = allResults
-          .filter(result => result.similarity >= threshold)
-          .slice(0, 5);
-
-        console.log(`Found ${results.length} results above threshold ${threshold}`);
-        return results;
-      } catch (error) {
-        console.error('Error during search:', error);
-        throw error;
+      // Get category similarities
+      const categorySimilarities = new Map<string, number>();
+      for (const [category, vector] of this.categoryEmbeddings.entries()) {
+        categorySimilarities.set(category, this.cosineSimilarity(mainQueryVector, vector));
       }
+
+      // Calculate similarities for all entries
+      const allResults = this.embeddings.map(({ entry, vector }) => {
+        const directSimilarity = this.cosineSimilarity(mainQueryVector, vector);
+        const categorySimilarity = categorySimilarities.get(entry.category) || 0;
+
+        // Combined similarity score
+        const combinedSimilarity = (directSimilarity * 0.8) + (categorySimilarity * 0.2);
+
+        return {
+          entry,
+          similarity: combinedSimilarity
+        };
+      });
+
+      // Sort by similarity
+      const sortedResults = allResults.sort((a, b) => b.similarity - a.similarity);
+
+      // Log top 3 similarities before filtering
+      console.log('Top 3 similarities:', 
+        sortedResults.slice(0, 3).map(r => ({
+          similarity: r.similarity,
+          category: r.entry.category,
+          subCategory: r.entry.subCategory,
+          sourceTitle: r.entry.sourceTitle
+        }))
+      );
+
+      // Apply threshold and get top results
+      const results = sortedResults
+        .filter(result => result.similarity >= threshold)
+        .slice(0, 5);  // Get top 5 results
+
+      console.log(`Found ${results.length} results above threshold ${threshold}`);
+
+      // Log detailed information about selected results
+      console.log('Selected results:', 
+        results.map(r => ({
+          similarity: r.similarity,
+          category: r.entry.category,
+          subCategory: r.entry.subCategory,
+          sourceTitle: r.entry.sourceTitle
+        }))
+      );
+
+      return results;
+    } catch (error) {
+      console.error('Error during search:', error);
+      throw error;
     }
+  }
 }
