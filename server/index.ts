@@ -38,9 +38,9 @@ app.use((req, res, next) => {
 (async () => {
   try {
     // Start listening on the port first
-    const PORT = 5000;
+    const PORT = process.env.PORT || 5000;
     const server = app.listen(PORT, "0.0.0.0", () => {
-      log(`serving on port ${PORT}`);
+      log(`Server listening on port ${PORT} in ${app.get("env")} mode`);
     });
 
     // Then initialize the system
@@ -50,9 +50,18 @@ app.use((req, res, next) => {
     await initializeSystem(csvPath);
     log('System initialization complete');
 
-    // Serve static files first in production
-    if (app.get("env") !== "development") {
-      serveStatic(app);
+    // In production, serve static files and set up error handling first
+    if (process.env.NODE_ENV === "production") {
+      // Serve static files from the built client
+      app.use(express.static("dist/public"));
+      
+      // Handle client-side routing by serving index.html for all routes
+      app.get("*", (req, res, next) => {
+        if (req.path.startsWith("/api")) {
+          return next();
+        }
+        res.sendFile("dist/public/index.html", { root: "." });
+      });
     }
 
     registerRoutes(app);
