@@ -63,15 +63,9 @@ app.use((req, res, next) => {
       registerRoutes(app);
 
       const distDir = path.resolve(__dirname, "..");
-      const clientPath = path.join(distDir, "dist", "public"); // Changed from "client" to "public"
+      const clientPath = path.join(distDir, "client", "dist");
 
       console.log(`[DEBUG] Static files path: ${clientPath}`);
-      console.log(`[DEBUG] Directory exists: ${fs.existsSync(clientPath)}`);
-
-      if (fs.existsSync(clientPath)) {
-        const files = fs.readdirSync(clientPath);
-        console.log('[DEBUG] Files in client directory:', files);
-      }
 
       // Serve static files
       app.use(express.static(clientPath));
@@ -79,21 +73,7 @@ app.use((req, res, next) => {
       // Fallback route for SPA
       app.get("*", (req, res, next) => {
         if (!req.path.startsWith("/api")) {
-          const indexPath = path.join(clientPath, "index.html");
-          console.log(`[DEBUG] Attempting to serve index.html from: ${indexPath}`);
-          console.log(`[DEBUG] File exists: ${fs.existsSync(indexPath)}`);
-
-          if (fs.existsSync(indexPath)) {
-            res.sendFile(indexPath, err => {
-              if (err) {
-                console.error('[DEBUG] Error serving index.html:', err);
-                next(err);
-              }
-            });
-          } else {
-            console.error('[DEBUG] index.html not found');
-            next(new Error('index.html not found'));
-          }
+          res.sendFile(path.join(clientPath, "index.html"));
         } else {
           next();
         }
