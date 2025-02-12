@@ -17,20 +17,20 @@ const vectorSearch = new VectorSearch(process.env.OPENAI_API_KEY);
 // Initialize data and vector search
 export async function initializeSystem(csvPath: string): Promise<void> {
   try {
-    console.log('Starting system initialization...');
+    console.log("Starting system initialization...");
     const dataLoader = DataLoader.getInstance();
 
-    console.log('Loading data from CSV...');
+    console.log("Loading data from CSV...");
     await dataLoader.loadData(csvPath);
 
     const data = dataLoader.getData();
     console.log(`Loaded ${data.length} entries from CSV`);
 
-    console.log('Initializing vector search...');
+    console.log("Initializing vector search...");
     await vectorSearch.initialize(data);
-    console.log('Vector search initialization complete');
+    console.log("Vector search initialization complete");
   } catch (error) {
-    console.error('Initialization error:', error);
+    console.error("Initialization error:", error);
     throw error;
   }
 }
@@ -51,9 +51,10 @@ Response Generation Rules:
    - If no relevant advice exists, respond with: "This area hasn't been covered in my existing advice yet."
 
 3. Source Attribution:
-   - End each response with: "For more insights, see: [sourceLink]"
-   - Include all unique source links from utilized advice points
-   - Format multiple sources as a bullet list
+    - End each response with: "\n\nFor more insights, check out:\n"
+    - For each source, format using HTML anchor tags: "• <a href='[sourceLink]'>[Title]</a>"
+    - Include all unique source links from utilized advice points
+    - Each source should be on its own line with a line break after
 
 Example Responses
 Query 1: "How should I approach fundraising for my startup?"
@@ -62,18 +63,16 @@ The fundamental principle is to raise money when you can, not when you need it. 
 Another critical aspect is understanding your metrics. During my time as a venture capitalist, I've seen that investors respond best to clear, data-driven presentations. From my "Venture Metrics" podcast: "The most successful fundraising meetings I've been in weren't just about the numbers - they were about the story those numbers told. One founder I worked with could show exactly how each marketing dollar translated into customer acquisition, and more importantly, how that relationship improved over time. That's the level of depth investors expect."
 When it comes to investor meetings, preparation is everything. In my Stanford lecture series, I emphasized this point through real examples: "I once had a founder who treated every casual coffee meeting like a formal pitch. He kept meeting with one particular VC informally for months. When a downturn hit and that VC's firm needed to deploy capital quickly, guess who got funded? The guy who was always ready. He didn't need to 'prepare' because he was already prepared."
 For more insights, see:
-•	www.source1.com/fundraising-fundamentals
-•	www.source2.com/venture-metrics
-•	www.source3.com/stanford-lectures
+•	 <a href='www.source1.com/fundraising-fundamentals/'>Fundraising Fundamentals</a>
+•	 <a href='www.source2.com/venture-metrics/'>Venture Metrics</a>
 Query 2: "What's your advice on work-life balance?"
 Raw Response 2 [before style application]: Work-life balance is a topic I've addressed extensively in my career:
 From my experience leading tech companies and serving on multiple boards, I've learned that balance isn't about perfect equilibrium. In my "Silicon Valley Life" blog, I detailed my own struggles: "In 1999, I was running a company, serving on four boards, and had two young children. I thought I could do it all until my daughter asked why I never came to her soccer games. That was my wake-up call. The myth of perfect balance was actually preventing me from making conscious choices about what really mattered."
 One practical approach I've found successful is setting clear boundaries. During my time as CEO, I developed what I call the "non-negotiable list." The context here is important - this came after a period where I was working 80-hour weeks and missing important family moments. From my "CEO Perspectives" youtube: "I started blocking out 'non-negotiable' time slots in my calendar - my daughter's soccer games, my son's piano recitals, my weekly tennis game. These weren't just appointments; they were commitments to maintaining my personal foundation. What I discovered was fascinating: when I made these boundaries clear to my team and board, not only did they respect them, but many started doing the same for themselves."
 The key insight from my board experience reinforces this approach. As shared in my governance workshops: "The most effective leaders I know aren't the ones who work the most hours - they're the ones who work the right hours. They understand that mental clarity and personal well-being directly impact their decision-making quality."
 For more insights, see:
-•	www.source4.com/silicon-valley-life
-•	www.source5.com/ceo-perspectives
-•	www.source6.com/governance-insights
+•	 <a href='www.source1.com/fundraising-fundamentals/'>Fundraising Fundamentals</a>
+•	 <a href='www.source2.com/venture-metrics/'>Venture Metrics</a>
 Query 3: "What's your advice on cryptocurrency trading?"
 Response 3: This area hasn't been covered in my existing advice yet.`;
 
@@ -82,7 +81,7 @@ const STAGE2_SYSTEM_PROMPT = `Transform the given response into Heidi Roizen's d
 Key Style Elements:
 - Lead with experience-based insight
 - Use direct, clear language
-- Include phrases like "Look..." or "Here's the thing..." to transition to key points (where logical;don't overuse)
+- Include phrases like "Look..." or "Here's the thing..." to transition to key points (do NOT overuse these two specific examples, use variants of these phrases)
 - Share real-world context without breaking confidentiality
 - Balance optimism with pragmatism
 - Use rhetorical questions to frame complex issues
@@ -117,14 +116,14 @@ The goal is to provide clear, experienced-based guidance while maintaining the a
 export async function generateStage1Response(query: string): Promise<string> {
   try {
     // Perform vector search
-    const searchResults = await vectorSearch.search(query, 0.65);
+    const searchResults = await vectorSearch.search(query, 0.3);
 
     if (searchResults.length === 0) {
       return "I don't have any specific advice about this topic. I focus on providing insights based on my experiences in entrepreneurship, venture capital, and business leadership.";
     }
 
-     // Enhance the prompt to ensure comprehensive coverage
-      const contextPrompt = `You are Heidi Roizen. Based on the following relevant advice entries, provide a comprehensive response that covers ALL key aspects of ${query}. Important guidelines:
+    // Enhance the prompt to ensure comprehensive coverage
+    const contextPrompt = `You are Heidi Roizen. Based on the following relevant advice entries, provide a comprehensive response that covers ALL key aspects of ${query}. Important guidelines:
 
     1. Combine insights from ALL provided entries to give complete guidance
     2. Include specific examples and context from your experience
@@ -134,8 +133,8 @@ export async function generateStage1Response(query: string): Promise<string> {
     Here are the relevant advice entries to draw from:
 
     ${searchResults
-    .map(
-      (result, index) => `
+      .map(
+        (result, index) => `
     Entry ${index + 1}:
     Category: ${result.entry.category}
     SubCategory: ${result.entry.subCategory}
@@ -145,31 +144,35 @@ export async function generateStage1Response(query: string): Promise<string> {
     SourceType: ${result.entry.sourceType}
     Link: ${result.entry.sourceLink}
     `,
-    )
-    .join("\n")}
+      )
+      .join("\n")}
 
     Query: ${query}`;
 
-      const completion = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-latest",
-        max_tokens: 2000,
-        temperature: 0.7,
-        system: STAGE1_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: contextPrompt }],
-      });
+    const completion = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-latest",
+      max_tokens: 2000,
+      temperature: 0.7,
+      system: STAGE1_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: contextPrompt }],
+    });
 
-      return completion.content[0].text;
-    } catch (error) {
-      throw new Error(`Stage 1 generation failed: ${error.message}`);
-    }
+    return completion.content[0].text;
+  } catch (error) {
+    throw new Error(`Stage 1 generation failed: ${error.message}`);
   }
+}
 
 export async function generateStage2Response(
   stage1Response: string,
 ): Promise<string> {
   try {
     // If it's a no-results response, return it directly without transformation
-    if (stage1Response.startsWith("I don't have any specific advice about this topic")) {
+    if (
+      stage1Response.startsWith(
+        "I don't have any specific advice about this topic",
+      )
+    ) {
       return stage1Response;
     }
 

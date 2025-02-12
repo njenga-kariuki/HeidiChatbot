@@ -1,10 +1,17 @@
 import { AdviceEntry, VectorSearchResult } from './types';
 import OpenAI from 'openai';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class VectorSearch {
   private openai: OpenAI;
   private embeddings: { entry: AdviceEntry; vector: number[] }[] = [];
   private categoryEmbeddings: Map<string, number[]> = new Map();
+  private cacheFilePath: string = path.join(__dirname, 'vectorCache.json');
 
   constructor(apiKey: string) {
     this.openai = new OpenAI({ apiKey });
@@ -14,8 +21,47 @@ export class VectorSearch {
     return `${entry.category} ${entry.subCategory} ${entry.advice} ${entry.adviceContext}`.trim();
   }
 
+  // --- Caching Methods ---
+  private loadCache(): boolean {
+    if (fs.existsSync(this.cacheFilePath)) {
+      try {
+        const rawData = fs.readFileSync(this.cacheFilePath, 'utf8');
+        const cache = JSON.parse(rawData);
+        this.categoryEmbeddings = new Map(cache.categoryEmbeddings);
+        this.embeddings = cache.embeddings;
+        console.log('Loaded embeddings from cache.');
+        return true;
+      } catch (error) {
+        console.error('Error loading cache:', error);
+        return false;
+      }
+    }
+    return false;
+  }
+
+  private saveCache(): void {
+    const cache = {
+      categoryEmbeddings: Array.from(this.categoryEmbeddings.entries()),
+      embeddings: this.embeddings,
+    };
+    try {
+      fs.writeFileSync(this.cacheFilePath, JSON.stringify(cache), 'utf8');
+      console.log('Saved embeddings to cache.');
+    } catch (error) {
+      console.error('Error saving cache:', error);
+    }
+  }
+  // ---------------------
+
   public async initialize(entries: AdviceEntry[]): Promise<void> {
     console.log(`Starting vector initialization with ${entries.length} entries`);
+
+    // Use cache if available to avoid recomputation
+    if (this.loadCache()) {
+      console.log('Using cached embeddings. Skipping re-initialization.');
+      return;
+    }
+
     try {
       // Create embeddings for unique categories
       const uniqueCategories = [...new Set(entries.map(e => e.category))];
@@ -34,7 +80,7 @@ export class VectorSearch {
         const searchText = this.constructSearchText(entry);
         const vector = await this.getEmbedding(searchText);
         this.embeddings.push({ entry, vector });
-        
+
         // Log progress every 50 entries
         if ((i + 1) % 50 === 0) {
           console.log(`Progress: ${i + 1}/${entries.length} entries processed`);
@@ -42,6 +88,8 @@ export class VectorSearch {
       }
 
       console.log(`Vector initialization complete. Total embeddings: ${this.embeddings.length}`);
+      // Save the computed embeddings for future use
+      this.saveCache();
     } catch (error) {
       console.error('Error during vector initialization:', error);
       throw error;
@@ -51,7 +99,7 @@ export class VectorSearch {
   private async getEmbedding(text: string): Promise<number[]> {
     try {
       const response = await this.openai.embeddings.create({
-        model: "text-embedding-ada-002",
+        model: "text-embedding-3-large",
         input: text
       });
       return response.data[0].embedding;
@@ -76,19 +124,29 @@ export class VectorSearch {
       // Get the main query vector
       const mainQueryVector = await this.getEmbedding(query);
 
-      // Get category similarities
+      // Get category similarities and log each
       const categorySimilarities = new Map<string, number>();
       for (const [category, vector] of this.categoryEmbeddings.entries()) {
-        categorySimilarities.set(category, this.cosineSimilarity(mainQueryVector, vector));
+        const sim = this.cosineSimilarity(mainQueryVector, vector);
+        categorySimilarities.set(category, sim);
+        console.log(`Category: ${category}, Similarity: ${sim}`);
       }
 
       // Calculate similarities for all entries
-      const allResults = this.embeddings.map(({ entry, vector }) => {
+      const allResults = this.embeddings.map(({ entry, vector }, index) => {
         const directSimilarity = this.cosineSimilarity(mainQueryVector, vector);
         const categorySimilarity = categorySimilarities.get(entry.category) || 0;
 
         // Combined similarity score
         const combinedSimilarity = (directSimilarity * 0.8) + (categorySimilarity * 0.2);
+
+        // Detailed logging for the first 3 entries
+        if (index < 3) {
+          console.log(`Entry ${index + 1}:`);
+          console.log(`   Direct Similarity: ${directSimilarity}`);
+          console.log(`   Category Similarity: ${categorySimilarity}`);
+          console.log(`   Combined Similarity: ${combinedSimilarity}`);
+        }
 
         return {
           entry,
