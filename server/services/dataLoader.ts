@@ -1,5 +1,5 @@
 
-import { parse } from 'papaparse';
+import Papa from 'papaparse';
 import fs from 'fs';
 import { AdviceEntry } from './types';
 
@@ -19,7 +19,7 @@ export class DataLoader {
   public async loadData(filePath: string): Promise<void> {
     try {
       const csvData = fs.readFileSync(filePath, 'utf-8');
-      const parseResult = parse(csvData, {
+      const parseResult = Papa.parse(csvData, {
         header: true,
         skipEmptyLines: true,
         transform: (value) => value.trim()
