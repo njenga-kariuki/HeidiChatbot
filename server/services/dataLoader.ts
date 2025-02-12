@@ -45,18 +45,28 @@ export class DataLoader {
     };
   }
 
+  private readAndCleanFile(filePath: string): string {
+    // Read file with UTF-8 encoding
+    const content = fs.readFileSync(filePath, 'utf8');
+
+    // Remove BOM if present
+    let cleaned = content.replace(/^\uFEFF/, '');
+
+    // Normalize line endings
+    cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // Ensure proper line endings for rows with quoted fields
+    cleaned = cleaned.replace(/"\n/g, '"\r\n');
+
+    return cleaned;
+  }
+
   public async loadData(filePath: string): Promise<void> {
     try {
       console.log('Loading data from:', filePath);
 
-      // Read file with proper encoding
-      const fileContent = fs.readFileSync(filePath, { encoding: 'utf-8' });
-
-      // Remove BOM and any other potential encoding artifacts
-      const cleanedContent = fileContent
-        .replace(/^\uFEFF/, '') // Remove BOM
-        .replace(/\r\n/g, '\n') // Normalize line endings
-        .trim();
+      // Read and clean the file content
+      const cleanedContent = this.readAndCleanFile(filePath);
 
       console.log(`File loaded. Content length: ${cleanedContent.length} characters`);
       console.log('First 200 characters:', cleanedContent.substring(0, 200));
@@ -64,20 +74,29 @@ export class DataLoader {
       // Parse CSV with complete configuration
       const parseResult = Papa.parse(cleanedContent, {
         header: true,
-        skipEmptyLines: true,
-        delimiter: ',', // Explicitly set delimiter
-        newline: '\n',  // Explicitly set newline
+        skipEmptyLines: 'greedy',
+        delimiter: ',',
+        newline: '\n',
+        quoteChar: '"',
+        escapeChar: '"',
+        comments: false,
+        delimitersToGuess: [',', '\t', '|', ';'],
         transform: (value) => value?.trim() || '',
-        complete: (results, file) => {
-          console.log(`Papa Parse complete. Found ${results.data.length} rows`);
-        },
-        error: (error, file) => {
+        error: (error) => {
           console.error('Papa Parse error:', error);
         }
       });
 
+      // Log any parsing errors or warnings
       if (parseResult.errors.length > 0) {
-        console.warn('CSV parsing warnings:', parseResult.errors);
+        console.warn('CSV parsing warnings:', 
+          parseResult.errors.map(err => ({
+            type: err.type,
+            code: err.code,
+            message: err.message,
+            row: err.row
+          }))
+        );
       }
 
       if (!parseResult.data || parseResult.data.length === 0) {
@@ -92,6 +111,14 @@ export class DataLoader {
 
       // Process entries
       const processedEntries = parseResult.data
+        .filter(row => {
+          // Check if row has all required fields
+          const hasAllFields = row.Category && row.SubCategory && row.Advice;
+          if (!hasAllFields) {
+            console.warn('Skipping invalid row:', row);
+          }
+          return hasAllFields;
+        })
         .map(row => this.preprocessAdviceEntry(row))
         .filter(entry => this.validateEntry(entry));
 
@@ -105,7 +132,6 @@ export class DataLoader {
         throw new Error('No valid entries found after processing');
       }
 
-      // Store the processed entries
       this.adviceData = processedEntries;
 
       // Log sample of processed entries
