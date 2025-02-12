@@ -16,9 +16,23 @@ const vectorSearch = new VectorSearch(process.env.OPENAI_API_KEY);
 
 // Initialize data and vector search
 export async function initializeSystem(csvPath: string): Promise<void> {
-  const dataLoader = DataLoader.getInstance();
-  await dataLoader.loadData(csvPath);
-  await vectorSearch.initialize(dataLoader.getData());
+  try {
+    console.log('Starting system initialization...');
+    const dataLoader = DataLoader.getInstance();
+
+    console.log('Loading data from CSV...');
+    await dataLoader.loadData(csvPath);
+
+    const data = dataLoader.getData();
+    console.log(`Loaded ${data.length} entries from CSV`);
+
+    console.log('Initializing vector search...');
+    await vectorSearch.initialize(data);
+    console.log('Vector search initialization complete');
+  } catch (error) {
+    console.error('Initialization error:', error);
+    throw error;
+  }
 }
 
 const STAGE1_SYSTEM_PROMPT = `You are a specialized chatbot that provides startup and entrepreneurship advice based on Heidi Roizen's experiences and insights. Your job is generate comprehensive, accurate responses by searching through the database of Heidi's advice and combining the most pertinent insights, including relevant context and supporting details.
@@ -31,16 +45,16 @@ Response Generation Rules:
 2. Response Construction:
    - Combine selected advice points into a coherent narrative
    - For each relevant advice point, incorporate ALL associated context
-   - When using direct quotes, format as: "As I mentioned in [Source Content Title], '[quote]'"
+   - When using direct quotes, format as: "As I mentioned in my [SourceType] [SourceTitle], '[quote]'"
    - For paraphrased content, integrate naturally while maintaining accuracy
    - If multiple perspectives exist on a topic, frame them as different valid approaches
    - If no relevant advice exists, respond with: "This area hasn't been covered in my existing advice yet."
 
 3. Source Attribution:
-   - End each response with: "For more insights, see: [Source Links]"
+   - End each response with: "For more insights, see: [sourceLink]"
    - Include all unique source links from utilized advice points
    - Format multiple sources as a bullet list
-   
+
 Example Responses
 Query 1: "How should I approach fundraising for my startup?"
 Raw Response 1 [before style application]: Based on the available advice, here are key insights about startup fundraising:
@@ -61,11 +75,7 @@ For more insights, see:
 •	www.source5.com/ceo-perspectives
 •	www.source6.com/governance-insights
 Query 3: "What's your advice on cryptocurrency trading?"
-Response 3: This area hasn't been covered in my existing advice yet.
-
-   
-   
-   `;
+Response 3: This area hasn't been covered in my existing advice yet.`;
 
 const STAGE2_SYSTEM_PROMPT = `Transform the given response into Heidi Roizen's distinctive communication style while maintaining all factual content and source attributions. Apply these style characteristics:
 
@@ -109,7 +119,7 @@ export async function generateStage1Response(query: string): Promise<string> {
     const searchResults = await vectorSearch.search(query);
 
     if (searchResults.length === 0) {
-      return "This area hasn't been covered in my existing advice yet.";
+      return "I don't have any specific advice about this topic. I focus on providing insights based on my experiences in entrepreneurship, venture capital, and business leadership.";
     }
 
     // Add search results to the prompt
@@ -121,9 +131,10 @@ ${searchResults
 Entry ${index + 1}:
 Category: ${result.entry.category}
 SubCategory: ${result.entry.subCategory}
-Content: ${result.entry.content}
-Context: ${result.entry.context}
+Content: ${result.entry.advice}
+Context: ${result.entry.adviceContext}
 Source: ${result.entry.sourceTitle}
+SourceType: ${result.entry.sourceType}
 Link: ${result.entry.sourceLink}
 `,
   )
@@ -132,7 +143,7 @@ Link: ${result.entry.sourceLink}
 Query: ${query}`;
 
     const completion = await anthropic.messages.create({
-      model: "claude-3-opus-20240229",
+      model: "claude-3-5-sonnet-latest",
       max_tokens: 2000,
       temperature: 0.7,
       system: STAGE1_SYSTEM_PROMPT,
@@ -149,12 +160,17 @@ export async function generateStage2Response(
   stage1Response: string,
 ): Promise<string> {
   try {
+    // If it's a no-results response, return it directly without transformation
+    if (stage1Response.startsWith("I don't have any specific advice about this topic")) {
+      return stage1Response;
+    }
+
     if (!stage1Response || stage1Response.trim() === "") {
       throw new Error("Stage 1 response is empty or invalid");
     }
 
     const completion = await anthropic.messages.create({
-      model: "claude-3-opus-20240229",
+      model: "claude-3-5-sonnet-latest",
       max_tokens: 2000,
       temperature: 0.7,
       system: STAGE2_SYSTEM_PROMPT,
