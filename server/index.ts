@@ -51,27 +51,23 @@ app.use((req, res, next) => {
     await initializeSystem(csvPath);
     log('System initialization complete');
 
-    // In production, serve static files and set up error handling first
     if (process.env.NODE_ENV === "production") {
-      // Define paths relative to the dist directory
       const distDir = path.resolve(__dirname, "..");
       const publicPath = path.join(distDir, "public");
       
       // Register API routes first
       registerRoutes(app);
       
-      // Serve static files from the built client
+      // Serve static files
       app.use(express.static(publicPath));
       
-      // Handle client-side routing by serving index.html for all non-API routes
-      app.get("*", (req, res) => {
-        if (!req.path.startsWith("/api")) {
-          res.sendFile(path.join(publicPath, "index.html"));
-        }
+      // Fallback route for SPA
+      app.get("*", (_req, res) => {
+        res.sendFile(path.join(publicPath, "index.html"));
       });
+    } else {
+      registerRoutes(app);
     }
-
-    registerRoutes(app);
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
