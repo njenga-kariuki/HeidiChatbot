@@ -72,42 +72,22 @@ app.use((req, res, next) => {
     console.log('[DEBUG] System initialization complete');
 
     if (process.env.NODE_ENV === "production") {
+      const distDir = path.resolve(__dirname, "..");
+      const clientPath = path.join(distDir, "dist");
+      
       // Register API routes first
       console.log('[DEBUG] Registering API routes');
       registerRoutes(app);
-
-      // Try multiple possible static file locations
-      const possiblePaths = [
-        path.join(__dirname, "..", "dist", "public"),
-        path.join(__dirname, "..", "public"),
-        path.join(__dirname, "public"),
-        path.join(process.cwd(), "dist", "public"),
-        path.join(process.cwd(), "public")
-      ];
-
-      console.log('Checking possible static file paths:');
-      possiblePaths.forEach(path => {
-        console.log(`Checking ${path} - exists: ${fs.existsSync(path)}`);
-        if (fs.existsSync(path)) {
-          console.log('Contents:', fs.readdirSync(path));
+      
+      // Serve static files
+      app.use(express.static(clientPath));
+      
+      // Handle SPA routing
+      app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+          res.sendFile(path.join(clientPath, 'index.html'));
         }
       });
-
-      // Try each path until we find one that exists
-      const staticPath = possiblePaths.find(p => fs.existsSync(p));
-
-      if (staticPath) {
-        console.log(`Using static path: ${staticPath}`);
-        app.use(express.static(staticPath));
-
-        app.get('*', (req, res) => {
-          if (!req.path.startsWith('/api')) {
-            res.sendFile(path.join(staticPath, 'index.html'));
-          }
-        });
-      } else {
-        console.error('No valid static file path found!');
-      }
     } else {
       // Development mode
       registerRoutes(app);
