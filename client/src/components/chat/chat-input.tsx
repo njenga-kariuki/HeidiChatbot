@@ -25,6 +25,14 @@ export default function ChatInput({ onSubmit, isLoading }: ChatInputProps) {
         placeholder="What question or topic do you want Heidi's advice on?"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (query.trim() && !isLoading) {
+              onSubmit(query);
+            }
+          }
+        }}
         className="min-h-[100px] resize-none"
       />
       <Button
