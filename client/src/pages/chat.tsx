@@ -32,9 +32,12 @@ export default function Chat() {
   return (
     <div className="min-h-screen bg-white p-4 md:p-8">
       <div className="mx-auto max-w-3xl">
-        <h1 className="mb-8 text-center text-3xl font-semibold">
+        <h1 className="mb-2 text-center text-3xl font-semibold">
           Heidi's Advice
         </h1>
+        <p className="mb-8 text-center italic text-gray-600">
+          AI venture wisdom powered by Heidi Roizen's archive of podcasts, talks, blogs, and 30+ years of straight-shooting startup advice
+        </p>
 
         <Card className="mb-6 p-6">
           <ChatInput
