@@ -53,21 +53,37 @@ app.use((req, res, next) => {
 
     // In production, serve static files and set up error handling first
     if (process.env.NODE_ENV === "production") {
-      const publicPath = path.join(__dirname, "public");
-      console.log("Serving static files from:", publicPath);
+      // Define paths relative to the dist directory
+      const distDir = path.resolve(__dirname, "..");
+      const publicPath = path.join(distDir, "public");
+      
+      console.log("Current directory:", __dirname);
+      console.log("Dist directory:", distDir);
+      console.log("Public directory:", publicPath);
       
       // Serve static files from the built client
       app.use(express.static(publicPath));
       
-      // Handle client-side routing by serving index.html for all routes
+      // Register API routes before the catch-all
+      registerRoutes(app);
+      
+      // Handle client-side routing by serving index.html for all non-API routes
       app.get("*", (req, res, next) => {
         if (req.path.startsWith("/api")) {
           return next();
         }
         const indexPath = path.join(publicPath, "index.html");
         console.log("Serving index.html from:", indexPath);
+        
+        // Check if index.html exists
+        if (!fs.existsSync(indexPath)) {
+          console.error("index.html not found at:", indexPath);
+          return res.status(404).send("Build files not found");
+        }
+        
         res.sendFile(indexPath);
       });
+      return; // Skip the rest of the setup
     }
 
     registerRoutes(app);
