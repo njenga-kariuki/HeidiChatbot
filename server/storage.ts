@@ -1,4 +1,6 @@
 import { messages, type Message, type InsertMessage } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
@@ -6,42 +8,36 @@ export interface IStorage {
   updateMessage(id: number, updates: Partial<Message>): Promise<Message>;
 }
 
-export class MemStorage implements IStorage {
-  private messages: Map<number, Message>;
-  private currentId: number;
-
-  constructor() {
-    this.messages = new Map();
-    this.currentId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
-    const id = this.currentId++;
-    const message: Message = {
-      ...insertMessage,
-      id,
-      stage1Response: null,
-      finalResponse: null,
-      metadata: null,
-      createdAt: new Date(),
-    };
-    this.messages.set(id, message);
+    const [message] = await db
+      .insert(messages)
+      .values(insertMessage)
+      .returning();
     return message;
   }
 
   async getMessage(id: number): Promise<Message | undefined> {
-    return this.messages.get(id);
+    const [message] = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.id, id));
+    return message;
   }
 
   async updateMessage(id: number, updates: Partial<Message>): Promise<Message> {
-    const existing = await this.getMessage(id);
-    if (!existing) {
+    const [message] = await db
+      .update(messages)
+      .set(updates)
+      .where(eq(messages.id, id))
+      .returning();
+
+    if (!message) {
       throw new Error(`Message ${id} not found`);
     }
-    const updated = { ...existing, ...updates };
-    this.messages.set(id, updated);
-    return updated;
+
+    return message;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

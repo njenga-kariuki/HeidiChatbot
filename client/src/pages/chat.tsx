@@ -44,11 +44,11 @@ export default function Chat() {
         </Card>
 
         {mutation.isPending && <LoadingMessage />}
-        
-        {message?.finalResponse && (
+
+        {message && (
           <ChatMessage
-            query={message.query}
-            response={message.finalResponse}
+            message={message}
+            onFeedbackSubmitted={setMessage}
           />
         )}
       </div>
