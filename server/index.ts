@@ -6,6 +6,20 @@ import path from "path";
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 
+// Add these debug handlers
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+// Debug current directory
+console.log('Current directory:', process.cwd());
+console.log('__dirname:', __dirname);
+console.log('Directory contents:', fs.readdirSync('.'));
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -62,22 +76,38 @@ app.use((req, res, next) => {
       console.log('[DEBUG] Registering API routes');
       registerRoutes(app);
 
-      const distDir = path.resolve(__dirname, "..");
-      const clientPath = path.join(distDir, "client", "dist");
+      // Try multiple possible static file locations
+      const possiblePaths = [
+        path.join(__dirname, "..", "dist", "public"),
+        path.join(__dirname, "..", "public"),
+        path.join(__dirname, "public"),
+        path.join(process.cwd(), "dist", "public"),
+        path.join(process.cwd(), "public")
+      ];
 
-      console.log(`[DEBUG] Static files path: ${clientPath}`);
-
-      // Serve static files
-      app.use(express.static(clientPath));
-
-      // Fallback route for SPA
-      app.get("*", (req, res, next) => {
-        if (!req.path.startsWith("/api")) {
-          res.sendFile(path.join(clientPath, "index.html"));
-        } else {
-          next();
+      console.log('Checking possible static file paths:');
+      possiblePaths.forEach(path => {
+        console.log(`Checking ${path} - exists: ${fs.existsSync(path)}`);
+        if (fs.existsSync(path)) {
+          console.log('Contents:', fs.readdirSync(path));
         }
       });
+
+      // Try each path until we find one that exists
+      const staticPath = possiblePaths.find(p => fs.existsSync(p));
+
+      if (staticPath) {
+        console.log(`Using static path: ${staticPath}`);
+        app.use(express.static(staticPath));
+
+        app.get('*', (req, res) => {
+          if (!req.path.startsWith('/api')) {
+            res.sendFile(path.join(staticPath, 'index.html'));
+          }
+        });
+      } else {
+        console.error('No valid static file path found!');
+      }
     } else {
       // Development mode
       registerRoutes(app);
