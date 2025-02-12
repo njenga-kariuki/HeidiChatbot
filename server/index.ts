@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeSystem } from "./services/claude";
+import path from "path";
 
 const app = express();
 
@@ -52,15 +53,20 @@ app.use((req, res, next) => {
 
     // In production, serve static files and set up error handling first
     if (process.env.NODE_ENV === "production") {
+      const publicPath = path.join(__dirname, "public");
+      console.log("Serving static files from:", publicPath);
+      
       // Serve static files from the built client
-      app.use(express.static("dist/public"));
+      app.use(express.static(publicPath));
       
       // Handle client-side routing by serving index.html for all routes
       app.get("*", (req, res, next) => {
         if (req.path.startsWith("/api")) {
           return next();
         }
-        res.sendFile("dist/public/index.html", { root: "." });
+        const indexPath = path.join(publicPath, "index.html");
+        console.log("Serving index.html from:", indexPath);
+        res.sendFile(indexPath);
       });
     }
 
