@@ -72,7 +72,7 @@ app.use((req, res, next) => {
 
     if (process.env.NODE_ENV === "production") {
       const distDir = path.resolve(__dirname, "..");
-      const clientPath = path.join(distDir, "dist");
+      const clientPath = path.join(distDir, "dist/public");
       
       // Register API routes first
       console.log('[DEBUG] Registering API routes');
