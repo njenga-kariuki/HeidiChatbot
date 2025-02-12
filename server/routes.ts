@@ -26,8 +26,10 @@ export function registerRoutes(app: Express): Server {
       res.json(updatedMessage);
     } catch (error) {
       if (error instanceof ZodError) {
+        console.error("Validation error:", error.errors);
         res.status(400).json({ message: "Invalid request data" });
       } else {
+        console.error("Chat request error:", error);
         res.status(500).json({ message: "Failed to process chat request" });
       }
     }
