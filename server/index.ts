@@ -16,11 +16,11 @@ process.on('uncaughtException', (error) => {
 });
 
 // Debug current directory
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 console.log('Current directory:', process.cwd());
 console.log('__dirname:', __dirname);
 console.log('Directory contents:', fs.readdirSync('.'));
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(express.json());
