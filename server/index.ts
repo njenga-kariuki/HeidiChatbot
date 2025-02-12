@@ -53,17 +53,17 @@ app.use((req, res, next) => {
 
     if (process.env.NODE_ENV === "production") {
       const distDir = path.resolve(__dirname, "..");
-      const publicPath = path.join(distDir, "public");
+      const clientPath = path.join(distDir, "dist", "client");
       
       // Register API routes first
       registerRoutes(app);
       
       // Serve static files
-      app.use(express.static(publicPath));
+      app.use(express.static(clientPath));
       
       // Fallback route for SPA
       app.get("*", (_req, res) => {
-        res.sendFile(path.join(publicPath, "index.html"));
+        res.sendFile(path.join(clientPath, "index.html"));
       });
     } else {
       registerRoutes(app);
