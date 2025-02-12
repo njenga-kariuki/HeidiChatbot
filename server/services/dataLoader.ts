@@ -46,17 +46,14 @@ export class DataLoader {
   }
 
   private readAndCleanFile(filePath: string): string {
-    // Read file with UTF-8 encoding
-    const content = fs.readFileSync(filePath, 'utf8');
-
-    // Remove BOM if present
-    let cleaned = content.replace(/^\uFEFF/, '');
-
-    // Normalize line endings
-    cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-    // Ensure proper line endings for rows with quoted fields
-    cleaned = cleaned.replace(/"\n/g, '"\r\n');
+    // Read file with UTF-8 encoding and BOM
+    const content = fs.readFileSync(filePath, { encoding: 'utf8' });
+    
+    // Remove BOM if present and normalize line endings
+    const cleaned = content
+      .replace(/^\uFEFF/, '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n');
 
     return cleaned;
   }
@@ -74,17 +71,18 @@ export class DataLoader {
       // Parse CSV with complete configuration
       const parseResult = Papa.parse(cleanedContent, {
         header: true,
-        skipEmptyLines: 'greedy',
+        skipEmptyLines: true,
         delimiter: ',',
         newline: '\n',
         quoteChar: '"',
         escapeChar: '"',
         comments: false,
-        delimitersToGuess: [',', '\t', '|', ';'],
+        transformHeader: (header) => header.trim(),
         transform: (value) => value?.trim() || '',
         error: (error) => {
           console.error('Papa Parse error:', error);
-        }
+        },
+        encoding: "UTF-8"
       });
 
       // Log any parsing errors or warnings
