@@ -20,8 +20,7 @@ console.log('Current directory:', process.cwd());
 console.log('__dirname:', __dirname);
 console.log('Directory contents:', fs.readdirSync('.'));
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(express.json());
