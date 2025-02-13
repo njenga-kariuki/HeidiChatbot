@@ -68,6 +68,26 @@ app.use((req, res, next) => {
     const PORT = process.env.PORT || 5000;
     const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`[DEBUG] Server listening on port ${PORT} in ${app.get("env")} mode`);
+
+      if (process.send) {
+        process.send('ready');
+      }
+    });
+
+    process.on('SIGINT', () => {
+      console.log('Received SIGINT. Graceful shutdown...');
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGTERM', () => {
+      console.log('Received SIGTERM. Graceful shutdown...');
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
     });
 
     console.log('[DEBUG] Starting system initialization...');
@@ -78,14 +98,14 @@ app.use((req, res, next) => {
     if (process.env.NODE_ENV === "production") {
       const distDir = path.resolve(__dirname, "..");
       const clientPath = path.join(distDir, "dist/public");
-      
+
       // Register API routes first
       console.log('[DEBUG] Registering API routes');
       registerRoutes(app);
-      
+
       // Serve static files
       app.use(express.static(clientPath));
-      
+
       // Handle SPA routing
       app.get('*', (req, res) => {
         if (!req.path.startsWith('/api')) {
