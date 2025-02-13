@@ -26,6 +26,11 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Health endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
+
 // Debug middleware - log all requests
 app.use((req, res, next) => {
   console.log(`[DEBUG] Incoming request: ${req.method} ${req.path}`);
