@@ -1,7 +1,7 @@
 
 import fetch from 'node-fetch';
 
-const PING_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const PING_INTERVAL = 10 * 60 * 1000; // 5 minutes
 const APP_URL = process.env.REPL_SLUG ? 
   `https://${process.env.REPL_SLUG}.repl.co` : 
   'http://localhost:5000';
