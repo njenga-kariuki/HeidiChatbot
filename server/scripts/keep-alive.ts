@@ -4,6 +4,20 @@ import fetch from 'node-fetch';
 const PING_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 5000; // 5 seconds
+let intervalId: NodeJS.Timeout;
+
+// Handle termination signals
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM signal. Shutting down gracefully...');
+  clearInterval(intervalId);
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT signal. Shutting down gracefully...');
+  clearInterval(intervalId);
+  process.exit(0);
+});
 
 async function pingWithRetry(url: string, retries = 0): Promise<void> {
   try {
@@ -33,7 +47,7 @@ async function startMonitoring() {
   await pingWithRetry(url);
   
   // Schedule regular pings
-  setInterval(() => pingWithRetry(url), PING_INTERVAL);
+  intervalId = setInterval(() => pingWithRetry(url), PING_INTERVAL);
 }
 
 startMonitoring().catch(error => {
