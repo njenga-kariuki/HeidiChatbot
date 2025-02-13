@@ -6,6 +6,10 @@ import { insertMessageSchema, feedbackSchema } from "@shared/schema";
 import { ZodError } from "zod";
 
 export function registerRoutes(app: Express): Server {
+  app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+  });
+
   app.post("/api/chat", async (req, res) => {
     try {
       const { query } = insertMessageSchema.parse(req.body);
