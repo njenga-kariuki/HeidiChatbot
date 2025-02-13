@@ -1,7 +1,7 @@
 
 import fetch from 'node-fetch';
 
-const PING_INTERVAL = 60 * 1000; // Ping every 1 minute instead of 5
+const PING_INTERVAL = 5* 60 * 1000; // Ping every 1 minute instead of 5
 const MAX_RETRIES = 5;
 const RETRY_DELAY = 2000; // 2 seconds
 
