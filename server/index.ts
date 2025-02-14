@@ -96,8 +96,10 @@ app.use((req, res, next) => {
     console.log('[DEBUG] System initialization complete');
 
     if (process.env.NODE_ENV === "production") {
-      const distDir = path.resolve(__dirname, "..");
-      const clientPath = path.join(distDir, "dist", "client");
+      const clientPath = path.resolve(process.cwd(), "dist/client");
+      
+      console.log('[DEBUG] Static files directory:', clientPath);
+      console.log('[DEBUG] Directory contents:', fs.readdirSync(clientPath));
 
       // Register API routes first
       console.log('[DEBUG] Registering API routes');
@@ -109,7 +111,9 @@ app.use((req, res, next) => {
       // Handle SPA routing
       app.get('*', (req, res) => {
         if (!req.path.startsWith('/api')) {
-          res.sendFile(path.join(clientPath, 'index.html'));
+          const indexPath = path.join(clientPath, 'index.html');
+          console.log('[DEBUG] Serving index.html from:', indexPath);
+          res.sendFile(indexPath);
         }
       });
     } else {
