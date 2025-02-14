@@ -74,9 +74,10 @@ export class DataLoader {
       console.log('First 200 characters:', cleanedContent.substring(0, 200));
 
       // Parse CSV with complete configuration
+      console.log('Starting CSV parse...');
       const parseResult = Papa.parse(cleanedContent, {
         header: true,
-        skipEmptyLines: true,
+        skipEmptyLines: 'greedy',
         delimiter: ',',
         newline: '\n',
         quoteChar: '"',
@@ -87,7 +88,10 @@ export class DataLoader {
         error: (error) => {
           console.error('Papa Parse error:', error);
         },
-        encoding: "UTF-8"
+        encoding: "UTF-8",
+        complete: (results) => {
+          console.log('Parse complete. Row count:', results.data.length);
+        }
       });
 
       // Log any parsing errors or warnings
