@@ -29,18 +29,22 @@ async function viewMessages(options: {
   
   console.log("\n=== Message History ===\n");
   
-  allMessages.forEach(msg => {
-    console.log(`Time: ${format(msg.createdAt, 'yyyy-MM-dd HH:mm:ss')}`);
+  allMessages.forEach((msg, index) => {
+    console.log(`=== Message ${index + 1} ===`);
+    console.log(`Timestamp: ${format(msg.createdAt, 'yyyy-MM-dd HH:mm:ss')}`);
     console.log(`Query: ${msg.query}`);
-    console.log(`Response: ${msg.finalResponse?.substring(0, 200)}...`);
-    console.log(`Feedback: ${msg.feedback || 'None'}\n`);
-    console.log("-".repeat(50) + "\n");
+    console.log('\nStage 1 Response:');
+    console.log(msg.stage1Response || 'None');
+    console.log('\nFinal Response:');
+    console.log(msg.finalResponse || 'None');
+    console.log('\nMetadata:', msg.metadata || 'None');
+    console.log(`Feedback: ${msg.feedback || 'None'}`);
+    console.log(`Thumbs Up: ${msg.thumbsUp === null ? 'None' : msg.thumbsUp}`);
+    console.log("\n" + "=".repeat(80) + "\n");
   });
 
-  console.log(`Total messages shown: ${allMessages.length}`);
+  console.log(`Total messages: ${allMessages.length}`);
 }
 
 // Example usage:
-viewMessages({ limit: 25 }); // Show last 5 messages
-// viewMessages({ search: "startup" }); // Search for messages containing "startup"
-// viewMessages({ dateFrom: new Date('2024-01-01') }); // Messages from 2024
+viewMessages({ limit: 10 }); // Show last 10 messages with full details
