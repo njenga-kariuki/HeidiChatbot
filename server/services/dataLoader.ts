@@ -61,6 +61,11 @@ export class DataLoader {
   public async loadData(filePath: string): Promise<void> {
     try {
       console.log('Loading data from:', filePath);
+      console.log('Current working directory:', process.cwd());
+      
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`File not found: ${filePath}`);
+      }
 
       // Read and clean the file content
       const cleanedContent = this.readAndCleanFile(filePath);
