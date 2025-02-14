@@ -36,7 +36,7 @@ export default function Chat() {
           Heidi's Advice
         </h1>
         <p className="mb-8 text-center italic text-gray-600">
-          AI venture wisdom powered by Heidi Roizen's archive of podcasts, talks, blogs, and 30+ years of straight-shooting startup advice
+          Venture wisdom powered by Heidi Roizen's archive of podcasts, talks, blogs, and 30+ years of straight-shooting startup advice
         </p>
 
         <Card className="mb-6 p-6">
