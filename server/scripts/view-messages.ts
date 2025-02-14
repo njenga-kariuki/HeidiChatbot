@@ -41,6 +41,6 @@ async function viewMessages(options: {
 }
 
 // Example usage:
-viewMessages({ limit: 5 }); // Show last 5 messages
+viewMessages({ limit: 25 }); // Show last 5 messages
 // viewMessages({ search: "startup" }); // Search for messages containing "startup"
 // viewMessages({ dateFrom: new Date('2024-01-01') }); // Messages from 2024
