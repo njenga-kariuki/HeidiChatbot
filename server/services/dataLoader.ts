@@ -47,14 +47,18 @@ export class DataLoader {
 
   private readAndCleanFile(filePath: string): string {
     // Read file with UTF-8 encoding and BOM
-    const content = fs.readFileSync(filePath, { encoding: 'utf8' });
+    const content = fs.readFileSync(filePath, { encoding: 'utf-8' });
+    console.log(`Raw file size: ${content.length} bytes`);
     
     // Remove BOM if present and normalize line endings
     const cleaned = content
       .replace(/^\uFEFF/, '')
       .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n');
+      .replace(/\r/g, '\n')
+      .trim();
 
+    console.log(`Cleaned file size: ${cleaned.length} bytes`);
+    console.log(`Number of lines: ${cleaned.split('\n').length}`);
     return cleaned;
   }
 
