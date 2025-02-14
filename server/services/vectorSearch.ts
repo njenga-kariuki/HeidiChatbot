@@ -23,18 +23,33 @@ export class VectorSearch {
 
   // --- Caching Methods ---
   private loadCache(): boolean {
-    if (fs.existsSync(this.cacheFilePath)) {
-      try {
+    const backupPath = `${this.cacheFilePath}.backup`;
+    
+    try {
+      // Try loading primary cache
+      if (fs.existsSync(this.cacheFilePath)) {
         const rawData = fs.readFileSync(this.cacheFilePath, 'utf8');
         const cache = JSON.parse(rawData);
         this.categoryEmbeddings = new Map(cache.categoryEmbeddings);
         this.embeddings = cache.embeddings;
-        console.log('Loaded embeddings from cache.');
+        
+        // Create backup of valid cache
+        fs.writeFileSync(backupPath, rawData);
+        console.log('Loaded embeddings from primary cache');
         return true;
-      } catch (error) {
-        console.error('Error loading cache:', error);
-        return false;
       }
+      
+      // Try loading backup if primary fails
+      if (fs.existsSync(backupPath)) {
+        const backupData = fs.readFileSync(backupPath, 'utf8');
+        const cache = JSON.parse(backupData);
+        this.categoryEmbeddings = new Map(cache.categoryEmbeddings);
+        this.embeddings = cache.embeddings;
+        console.log('Loaded embeddings from backup cache');
+        return true;
+      }
+    } catch (error) {
+      console.error('Error loading cache:', error);
     }
     return false;
   }

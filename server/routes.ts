@@ -7,7 +7,28 @@ import { ZodError } from "zod";
 
 export function registerRoutes(app: Express): Server {
   app.get('/health', (req, res) => {
-    res.status(200).send('OK');
+    const healthFile = path.join(process.cwd(), 'health.txt');
+    try {
+      // Check if health file exists and is recent
+      const stats = fs.statSync(healthFile);
+      const lastUpdate = new Date(stats.mtime);
+      const isRecent = (Date.now() - lastUpdate.getTime()) < 120000; // 2 minutes
+      
+      if (!isRecent) {
+        throw new Error('Health check file is stale');
+      }
+      
+      res.status(200).json({
+        status: 'healthy',
+        lastUpdate: lastUpdate.toISOString(),
+        uptime: process.uptime()
+      });
+    } catch (error) {
+      res.status(503).json({
+        status: 'unhealthy',
+        error: error.message
+      });
+    }
   });
 
   app.post("/api/chat", async (req, res) => {
