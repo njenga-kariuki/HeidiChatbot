@@ -206,7 +206,7 @@ export async function generateStage2Response(
       throw new Error('No content received from Claude API in Stage 2');
     }
 
-    return completion.content[0].value;
+    return completion.content[0].text;
   } catch (error: any) {
     console.error('Stage 2 generation error:', error);
     throw new Error(`Stage 2 generation failed: ${error.message}`);
