@@ -161,13 +161,12 @@ export async function generateStage1Response(query: string): Promise<string> {
     });
 
     console.log('Stage 1 completion:', JSON.stringify(completion, null, 2));
-    console.log('Stage 1 content array:', completion.content);
     
-    if (!completion.content || completion.content.length === 0) {
-      throw new Error('No content received from Claude API');
+    if (!completion?.content?.[0]?.text) {
+      throw new Error('Invalid response format from Claude API');
     }
 
-    const response = completion.content[0].value;
+    const response = completion.content[0].text;
     console.log('Stage 1 response:', response);
     return response;
   } catch (error: any) {
@@ -180,16 +179,12 @@ export async function generateStage2Response(
   stage1Response: string,
 ): Promise<string> {
   try {
-    if (!stage1Response) {
-      throw new Error("Stage 1 response is null or undefined");
+    if (typeof stage1Response !== 'string') {
+      throw new Error("Invalid Stage 1 response type");
     }
 
     // If it's a no-results response, return it directly without transformation
-    if (
-      stage1Response.startsWith(
-        "I don't have any specific advice about this topic",
-      )
-    ) {
+    if (stage1Response.includes("I don't have any specific advice about this topic")) {
       return stage1Response;
     }
 
