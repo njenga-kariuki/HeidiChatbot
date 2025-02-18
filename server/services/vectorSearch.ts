@@ -11,10 +11,38 @@ export class VectorSearch {
   private openai: OpenAI;
   private embeddings: { entry: AdviceEntry; vector: number[] }[] = [];
   private categoryEmbeddings: Map<string, number[]> = new Map();
-  private cacheFilePath: string = path.join(__dirname, 'vectorCache.json');
+  private cacheFilePath: string;
 
   constructor(apiKey: string) {
     this.openai = new OpenAI({ apiKey });
+    this.cacheFilePath = this.getCachePath();
+  }
+
+  private getCachePath(): string {
+    // Try multiple possible locations
+    const possiblePaths = [
+      path.join(process.cwd(), 'cache', 'vectorCache.json'),
+      path.join(__dirname, '..', 'cache', 'vectorCache.json'),
+      path.join(process.env.DATA_DIR || '', 'vectorCache.json')
+    ];
+    
+    for (const p of possiblePaths) {
+      const dir = path.dirname(p);
+      try {
+        // Ensure directory exists
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        // Test write access
+        fs.accessSync(dir, fs.constants.W_OK);
+        return p;
+      } catch (e) {
+        console.warn(`Cache path ${p} not usable:`, e);
+        continue;
+      }
+    }
+    
+    throw new Error('No writable cache location found');
   }
 
   private constructSearchText(entry: AdviceEntry): string {
@@ -54,8 +82,32 @@ export class VectorSearch {
     return false;
   }
 
+  private validateCache(cache: any): boolean {
+    const requiredKeys = ['version', 'categoryEmbeddings', 'embeddings', 'model'];
+    if (!requiredKeys.every(key => key in cache)) {
+      console.warn('Cache missing required keys');
+      return false;
+    }
+    
+    // Version check
+    if (cache.version !== '1.0') {
+      console.warn('Cache version mismatch');
+      return false;
+    }
+    
+    // Model check
+    if (cache.model !== "text-embedding-3-large") {
+      console.warn('Cache model mismatch');
+      return false;
+    }
+    
+    return true;
+  }
+
   private saveCache(): void {
     const cache = {
+      version: '1.0',
+      model: "text-embedding-3-large",
       categoryEmbeddings: Array.from(this.categoryEmbeddings.entries()),
       embeddings: this.embeddings,
     };
@@ -70,13 +122,60 @@ export class VectorSearch {
 
   public async initialize(entries: AdviceEntry[]): Promise<void> {
     console.log(`Starting vector initialization with ${entries.length} entries`);
+    
+    let useCache = false;
+    try {
+      useCache = this.loadCache();
+    } catch (error) {
+      console.error('Cache load failed:', error);
+    }
 
-    // Use cache if available to avoid recomputation
-    if (this.loadCache()) {
-      console.log('Using cached embeddings. Skipping re-initialization.');
+    if (useCache) {
+      console.log('Using cached embeddings');
       return;
     }
 
+    // If cache fails, use a lock file to prevent multiple processes from regenerating
+    const lockFile = `${this.cacheFilePath}.lock`;
+    
+    try {
+      if (fs.existsSync(lockFile)) {
+        console.log('Another process is generating embeddings, waiting...');
+        // Wait for lock to be released
+        await this.waitForLock(lockFile);
+        // Try loading cache again
+        if (this.loadCache()) {
+          return;
+        }
+      }
+
+      // Create lock
+      fs.writeFileSync(lockFile, new Date().toISOString());
+
+      // Generate embeddings
+      await this.generateEmbeddings(entries);
+      
+      // Save cache
+      this.saveCache();
+    } finally {
+      // Always clean up lock
+      if (fs.existsSync(lockFile)) {
+        fs.unlinkSync(lockFile);
+      }
+    }
+  }
+
+  private async waitForLock(lockFile: string, timeout = 300000): Promise<void> {
+    const start = Date.now();
+    while (fs.existsSync(lockFile)) {
+      if (Date.now() - start > timeout) {
+        throw new Error('Timeout waiting for embeddings generation');
+      }
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+  }
+
+  private async generateEmbeddings(entries: AdviceEntry[]): Promise<void> {
     try {
       // Create embeddings for unique categories
       const uniqueCategories = [...new Set(entries.map(e => e.category))];
@@ -103,8 +202,6 @@ export class VectorSearch {
       }
 
       console.log(`Vector initialization complete. Total embeddings: ${this.embeddings.length}`);
-      // Save the computed embeddings for future use
-      this.saveCache();
     } catch (error) {
       console.error('Error during vector initialization:', error);
       throw error;

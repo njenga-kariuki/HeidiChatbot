@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { generateStage1Response, generateStage2Response } from "./services/claude";
 import { insertMessageSchema, feedbackSchema } from "@shared/schema";
 import { ZodError } from "zod";
+import path from 'path';
+import fs from 'fs';
 
 export function registerRoutes(app: Express): Server {
   app.get('/health', (req, res) => {
@@ -26,7 +28,7 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       res.status(503).json({
         status: 'unhealthy',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
@@ -34,21 +36,35 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/chat", async (req, res) => {
     try {
       const { query } = insertMessageSchema.parse(req.body);
+      console.log('Processing chat request for query:', query);
 
       // Create initial message
       const message = await storage.createMessage({ query });
+      console.log('Created initial message:', message.id);
 
       // Generate stage 1 response
       const stage1Response = await generateStage1Response(query);
-      await storage.updateMessage(message.id, { stage1Response });
+      console.log('Stage 1 response received:', !!stage1Response);
+      
+      if (stage1Response) {
+        await storage.updateMessage(message.id, { stage1Response });
+        console.log('Updated message with stage 1 response');
+      }
 
       // Generate final response
       const finalResponse = await generateStage2Response(stage1Response);
-      const updatedMessage = await storage.updateMessage(message.id, { 
-        finalResponse
-      });
-
-      res.json(updatedMessage);
+      console.log('Final response received:', !!finalResponse);
+      
+      if (finalResponse) {
+        const updatedMessage = await storage.updateMessage(message.id, { 
+          finalResponse 
+        });
+        console.log('Updated message with final response');
+        res.json(updatedMessage);
+      } else {
+        console.log('No final response, returning message with stage 1 only');
+        res.json(message);
+      }
     } catch (error) {
       if (error instanceof ZodError) {
         console.error("Validation error:", error.errors);

@@ -33,7 +33,7 @@ export default function Chat() {
     <div className="min-h-screen bg-white p-4 md:p-8">
       <div className="mx-auto max-w-3xl">
         <h1 className="mb-2 text-center text-3xl font-semibold">
-          Heidi's Advice
+          Ask Heidi
         </h1>
         <p className="mb-8 text-center italic text-gray-600">
           Venture wisdom powered by Heidi Roizen's archive of podcasts, talks, blogs, and 30+ years of straight-shooting startup advice

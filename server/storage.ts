@@ -26,9 +26,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateMessage(id: number, updates: Partial<Message>): Promise<Message> {
+    // Validate that we have actual updates to perform
+    const validUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, value]) => value !== undefined)
+    );
+
+    if (Object.keys(validUpdates).length === 0) {
+      throw new Error('No valid updates provided');
+    }
+
     const [message] = await db
       .update(messages)
-      .set(updates)
+      .set(validUpdates)
       .where(eq(messages.id, id))
       .returning();
 

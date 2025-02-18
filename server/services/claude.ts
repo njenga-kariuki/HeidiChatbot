@@ -4,10 +4,12 @@ import { DataLoader } from "./dataLoader";
 import { VectorSearch } from "./vectorSearch";
 import { VectorSearchResult } from "./types";
 
+// These are loaded when the server starts
 if (!process.env.CLAUDE_API_KEY || !process.env.OPENAI_API_KEY) {
   throw new Error("CLAUDE_API_KEY and OPENAI_API_KEY are required");
 }
 
+// These services are instantiated when the module loads
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
 });
@@ -79,8 +81,9 @@ Response 3: This area hasn't been covered in my existing advice yet.`;
 const STAGE2_SYSTEM_PROMPT = `Transform the given response into Heidi Roizen's distinctive communication style while maintaining all factual content and source attributions. Apply these style characteristics:
 
 Key Style Elements:
-- Lead with a relevant experience-based insight
+- Begin with the core message directly from the original response without adding prefaces
 - Use direct, clear language
+- Use natural transitions between key points 
 - Share real-world context without breaking confidentiality
 - Balance optimism with pragmatism
 - Use rhetorical questions to frame complex issues
@@ -92,23 +95,22 @@ Key Style Elements:
 
 Guidelines:
 - NEVER include meta-commentary about writing style, content limitations, or acknowledge that you're adapting content; give the advice directly as if you are Heidi Roizen
+- Start responses exactly where the original response starts - do not add scene-setting or context-building sentences
 - Avoid over-casual language while maintaining conversational tone
-- Ground advice in practical experience
+- Ground advice in practical experience from the given response (do not make up new advice)
 - Address the core issue while acknowledging broader context
 - Use "I've seen" and "in my experience" to establish authority naturally
 - Break down complex topics into digestible insights
 - You MUST Maintain all source attributions and links from the original response, including source links at end 
-
+- Ensure all sentences and list items end with appropriate punctuation
 
 Here are examples of this style:
 QUESTION: What should I do if my co-founder isn't pulling their weight?
-RESPONSE: Look, this is one of those situations I see far more often than any of us would like. And while your instinct might be to immediately confront the issue head-on, let's take a step back and think this through strategically.
-First - and I always tell founders this - you need to get really clear about what "not pulling their weight" actually means. Is this about hours worked? Quality of output? Strategic contribution? I've seen too many co-founder relationships implode because people were solving for different problems.
+RESPONSE: Look, this is one of those situations I see far more often than any of us would like. First - and I always tell founders this - you need to get really clear about what "not pulling their weight" actually means. Is this about hours worked? Quality of output? Strategic contribution? I've seen too many co-founder relationships implode because people were solving for different problems.
 In my experience working with hundreds of startups, these situations usually stem from misaligned expectations rather than bad intent. Your co-founder might think they're doing exactly what was agreed upon, while you're working from a completely different playbook.
 And here's something that might surprise you - sometimes the solution isn't about getting them to work "harder," but rather restructuring roles to better match each person's strengths and the company's current needs.
 QUESTION: Should I take investment from a big tech company's corporate VC arm?
-RESPONSE: I can't tell you how many times I've had founders come to me excited about a potential corporate investment, thinking it's going to be the perfect blend of capital and strategic partnership. But here's what we need to unpack before you go down that path.
-First, let's be really clear about something - corporate VCs and traditional VCs often have very different incentive structures and time horizons. This isn't necessarily good or bad, but it's something you absolutely need to understand.
+RESPONSE: There's a few things to unpack before you go down that path. First, let's be really clear about something - corporate VCs and traditional VCs often have very different incentive structures and time horizons. This isn't necessarily good or bad, but it's something you absolutely need to understand.
 I've sat on boards where corporate investment opened incredible doors for the company. I've also seen situations where it effectively shut down potential partnerships with that corporation's competitors. The key question isn't whether corporate VC money is good or bad - it's whether it aligns with your specific strategic needs.
 
 The goal is to provide clear, experienced-based guidance while maintaining the authentic, straight-talking style that characterizes Heidi's advisory approach`;
@@ -117,6 +119,7 @@ export async function generateStage1Response(query: string): Promise<string> {
   try {
     // Perform vector search
     const searchResults = await vectorSearch.search(query, 0.3);
+    console.log('Stage 1 search results:', searchResults.length);
 
     if (searchResults.length === 0) {
       return "I don't have any specific advice about this topic. I focus on providing insights based on my experiences in entrepreneurship, venture capital, and business leadership.";
@@ -157,8 +160,18 @@ export async function generateStage1Response(query: string): Promise<string> {
       messages: [{ role: "user", content: contextPrompt }],
     });
 
-    return completion.content[0].text;
-  } catch (error) {
+    console.log('Stage 1 completion:', JSON.stringify(completion, null, 2));
+    console.log('Stage 1 content array:', completion.content);
+    
+    if (!completion.content || completion.content.length === 0) {
+      throw new Error('No content received from Claude API');
+    }
+
+    const response = completion.content[0].value;
+    console.log('Stage 1 response:', response);
+    return response;
+  } catch (error: any) {
+    console.error('Stage 1 generation error:', error);
     throw new Error(`Stage 1 generation failed: ${error.message}`);
   }
 }
@@ -167,6 +180,10 @@ export async function generateStage2Response(
   stage1Response: string,
 ): Promise<string> {
   try {
+    if (!stage1Response) {
+      throw new Error("Stage 1 response is null or undefined");
+    }
+
     // If it's a no-results response, return it directly without transformation
     if (
       stage1Response.startsWith(
@@ -176,8 +193,8 @@ export async function generateStage2Response(
       return stage1Response;
     }
 
-    if (!stage1Response || stage1Response.trim() === "") {
-      throw new Error("Stage 1 response is empty or invalid");
+    if (stage1Response.trim() === "") {
+      throw new Error("Stage 1 response is empty");
     }
 
     const completion = await anthropic.messages.create({
@@ -188,8 +205,15 @@ export async function generateStage2Response(
       messages: [{ role: "user", content: stage1Response }],
     });
 
-    return completion.content[0].text;
-  } catch (error) {
+    console.log('Stage 2 completion:', JSON.stringify(completion, null, 2));
+    
+    if (!completion.content || completion.content.length === 0) {
+      throw new Error('No content received from Claude API in Stage 2');
+    }
+
+    return completion.content[0].value;
+  } catch (error: any) {
+    console.error('Stage 2 generation error:', error);
     throw new Error(`Stage 2 generation failed: ${error.message}`);
   }
 }
