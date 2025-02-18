@@ -78,24 +78,25 @@ For more insights, see:
 Query 3: "What's your advice on cryptocurrency trading?"
 Response 3: This area hasn't been covered in my existing advice yet.`;
 
-const STAGE2_SYSTEM_PROMPT = `Transform the given response into Heidi Roizen's distinctive communication style while maintaining all factual content and source attributions. Apply these style characteristics:
+const STAGE2_SYSTEM_PROMPT = `Polish the given response into Heidi Roizen's distinctive communication style while maintaining all factual content and source attributions. Apply these style characteristics:
 
 Key Style Elements:
 - Begin with the core message directly from the original response without adding prefaces
 - Use direct, clear language
-- Use natural transitions between key points 
 - Share real-world context without breaking confidentiality
 - Balance optimism with pragmatism
 - Use rhetorical questions to frame complex issues
-- Include specific examples while maintaining privacy
+- Include specific examples while maintaining accuracy
 - Acknowledge nuance in complex situations
 - Use short sentences for emphasis
-- Include personal observations from extensive experience
+- Use personal observations from the given response (when available)
 - Stay professional while being approachable
 
 Guidelines:
 - NEVER include meta-commentary about writing style, content limitations, or acknowledge that you're adapting content; give the advice directly as if you are Heidi Roizen
 - Start responses exactly where the original response starts - do not add scene-setting or context-building sentences
+- Maintain sequential markers (First, Second, Finally) from the original response, adding them if not present
+- Maintain line breaks between each key point from the original response, adding them if not present
 - Avoid over-casual language while maintaining conversational tone
 - Ground advice in practical experience from the given response (do not make up new advice)
 - Address the core issue while acknowledging broader context
@@ -119,7 +120,7 @@ export async function generateStage1Response(query: string): Promise<string> {
   try {
     // Perform vector search
     const searchResults = await vectorSearch.search(query, 0.3);
-    console.log('Stage 1 search results:', searchResults.length);
+    console.log("Stage 1 search results:", searchResults.length);
 
     if (searchResults.length === 0) {
       return "I don't have any specific advice about this topic. I focus on providing insights based on my experiences in entrepreneurship, venture capital, and business leadership.";
@@ -160,17 +161,17 @@ export async function generateStage1Response(query: string): Promise<string> {
       messages: [{ role: "user", content: contextPrompt }],
     });
 
-    console.log('Stage 1 completion:', JSON.stringify(completion, null, 2));
-    
+    console.log("Stage 1 completion:", JSON.stringify(completion, null, 2));
+
     if (!completion?.content?.[0]?.text) {
-      throw new Error('Invalid response format from Claude API');
+      throw new Error("Invalid response format from Claude API");
     }
 
     const response = completion.content[0].text;
-    console.log('Stage 1 response:', response);
+    console.log("Stage 1 response:", response);
     return response;
   } catch (error: any) {
-    console.error('Stage 1 generation error:', error);
+    console.error("Stage 1 generation error:", error);
     throw new Error(`Stage 1 generation failed: ${error.message}`);
   }
 }
@@ -179,12 +180,16 @@ export async function generateStage2Response(
   stage1Response: string,
 ): Promise<string> {
   try {
-    if (typeof stage1Response !== 'string') {
+    if (typeof stage1Response !== "string") {
       throw new Error("Invalid Stage 1 response type");
     }
 
     // If it's a no-results response, return it directly without transformation
-    if (stage1Response.includes("I don't have any specific advice about this topic")) {
+    if (
+      stage1Response.includes(
+        "I don't have any specific advice about this topic",
+      )
+    ) {
       return stage1Response;
     }
 
@@ -200,15 +205,15 @@ export async function generateStage2Response(
       messages: [{ role: "user", content: stage1Response }],
     });
 
-    console.log('Stage 2 completion:', JSON.stringify(completion, null, 2));
-    
+    console.log("Stage 2 completion:", JSON.stringify(completion, null, 2));
+
     if (!completion.content || completion.content.length === 0) {
-      throw new Error('No content received from Claude API in Stage 2');
+      throw new Error("No content received from Claude API in Stage 2");
     }
 
     return completion.content[0].text;
   } catch (error: any) {
-    console.error('Stage 2 generation error:', error);
+    console.error("Stage 2 generation error:", error);
     throw new Error(`Stage 2 generation failed: ${error.message}`);
   }
 }

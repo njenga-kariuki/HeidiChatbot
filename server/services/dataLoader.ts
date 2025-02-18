@@ -164,4 +164,62 @@ export class DataLoader {
   public getData(): AdviceEntry[] {
     return this.adviceData;
   }
+
+  public getCategories(): string[] {
+    return [...new Set(this.adviceData.map(entry => entry.category))].sort();
+  }
+
+  public getSubCategories(): string[] {
+    return [...new Set(this.adviceData.map(entry => entry.subCategory))].sort();
+  }
+
+  public searchAdvice(params: {
+    query?: string;
+    category?: string;
+    subCategory?: string;
+    page: number;
+    pageSize: number;
+  }): {
+    entries: AdviceEntry[];
+    total: number;
+    from: number;
+    to: number;
+    totalPages: number;
+  } {
+    const { query, category, subCategory, page, pageSize } = params;
+    
+    let filtered = [...this.adviceData];
+
+    // Apply filters
+    if (query) {
+      const searchTerm = query.toLowerCase();
+      filtered = filtered.filter(entry =>
+        entry.advice.toLowerCase().includes(searchTerm) ||
+        entry.adviceContext.toLowerCase().includes(searchTerm) ||
+        entry.sourceTitle.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    if (category) {
+      filtered = filtered.filter(entry => entry.category === category);
+    }
+
+    if (subCategory) {
+      filtered = filtered.filter(entry => entry.subCategory === subCategory);
+    }
+
+    // Calculate pagination
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / pageSize);
+    const from = (page - 1) * pageSize;
+    const to = Math.min(from + pageSize, total);
+
+    return {
+      entries: filtered.slice(from, to),
+      total,
+      from: from + 1,
+      to,
+      totalPages,
+    };
+  }
 }

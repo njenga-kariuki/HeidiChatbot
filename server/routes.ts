@@ -2,10 +2,11 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generateStage1Response, generateStage2Response } from "./services/claude";
-import { insertMessageSchema, feedbackSchema } from "@shared/schema";
+import { insertMessageSchema, feedbackSchema, searchResponseSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import path from 'path';
 import fs from 'fs';
+import { DataLoader } from "./services/dataLoader";
 
 export function registerRoutes(app: Express): Server {
   app.get('/health', (req, res) => {
@@ -89,6 +90,35 @@ export function registerRoutes(app: Express): Server {
       } else {
         res.status(500).json({ message: "Failed to save feedback" });
       }
+    }
+  });
+
+  app.get("/api/advice/search", async (req, res) => {
+    try {
+      const dataLoader = DataLoader.getInstance();
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = 10;
+
+      const searchResults = dataLoader.searchAdvice({
+        query: req.query.q as string,
+        category: req.query.category as string,
+        subCategory: req.query.subCategory as string,
+        page,
+        pageSize,
+      });
+
+      const response = {
+        ...searchResults,
+        categories: dataLoader.getCategories(),
+        subCategories: dataLoader.getSubCategories(),
+      };
+
+      // Validate response matches schema
+      const validated = searchResponseSchema.parse(response);
+      res.json(validated);
+    } catch (error) {
+      console.error("Search request error:", error);
+      res.status(500).json({ message: "Failed to process search request" });
     }
   });
 
