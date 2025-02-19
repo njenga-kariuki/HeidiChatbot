@@ -1,0 +1,26 @@
+/* Update the base link styles */
+a {
+  color: var(--color-primary-blue, #0066CC);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Add arrow for external links where needed */
+a[href^="http"]::after,
+a.external::after {
+  content: ">";
+  display: inline-block;
+  margin-left: 2px;
+}
+
+/* Preserve hover state */
+a:hover {
+  text-decoration: underline;
+}
+
+/* Exclude arrow from certain links */
+a.no-arrow::after {
+  display: none;
+} 

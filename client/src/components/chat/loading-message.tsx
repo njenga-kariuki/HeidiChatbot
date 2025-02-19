@@ -6,8 +6,8 @@ export default function LoadingMessage() {
     <Card className="border-gray-200">
       <CardContent className="p-6">
         <div className="flex items-center space-x-4">
-          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-          <p className="text-sm text-gray-600">
+          <Loader2 className="h-6 w-6 animate-spin text-threshold-orange" />
+          <p className="text-sm text-threshold-text-muted">
             ...
           </p>
         </div>

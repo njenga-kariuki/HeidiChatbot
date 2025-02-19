@@ -66,7 +66,7 @@ export default function Search() {
               placeholder="Search advice..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 border-gray-200 focus:border-threshold-orange focus:ring focus:ring-threshold-orange/20"
+              className="pl-10 border-gray-200 focus:border-threshold-orange focus:ring focus:ring-threshold-orange/20 normal-case"
             />
           </div>
 
@@ -75,13 +75,13 @@ export default function Search() {
               value={selectedCategory ?? undefined} 
               onValueChange={setSelectedCategory}
             >
-              <SelectTrigger className="w-[200px] border-gray-200 focus:ring-threshold-orange/20">
+              <SelectTrigger className="w-[200px] border-gray-200 focus:ring-threshold-orange/20 normal-case">
                 {selectedCategory || "All Categories"}
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="all" className="normal-case">All Categories</SelectItem>
                 {data?.categories?.map((cat: string) => (
-                  <SelectItem key={cat} value={cat}>
+                  <SelectItem key={cat} value={cat} className="normal-case">
                     {cat}
                   </SelectItem>
                 ))}
@@ -95,13 +95,13 @@ export default function Search() {
                 setSelectedCategory(null);
               }}
             >
-              <SelectTrigger className="w-[200px] border-gray-200 focus:ring-threshold-orange/20">
+              <SelectTrigger className="w-[200px] border-gray-200 focus:ring-threshold-orange/20 normal-case">
                 {selectedSubCategory || "All Subcategories"}
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Subcategories</SelectItem>
+                <SelectItem value="all" className="normal-case">All Subcategories</SelectItem>
                 {data?.subCategories?.map((subcat: string) => (
-                  <SelectItem key={subcat} value={subcat}>
+                  <SelectItem key={subcat} value={subcat} className="normal-case">
                     {subcat}
                   </SelectItem>
                 ))}
@@ -120,11 +120,11 @@ export default function Search() {
               className="p-4 cursor-pointer hover:bg-threshold-bg-secondary flex justify-between items-start group"
             >
               <div className="space-y-2">
-                <div className="text-sm text-threshold-text-muted">
+                <div className="text-sm text-threshold-text-muted normal-case">
                   <span className="text-threshold-orange mr-1">•</span>
                   {item.category} → {item.subCategory}
                 </div>
-                <div className="font-medium text-threshold-text-primary group-hover:text-threshold-orange transition-colors">
+                <div className="font-medium text-threshold-text-primary group-hover:text-threshold-orange transition-colors normal-case">
                   {item.advice}
                 </div>
               </div>
@@ -138,7 +138,7 @@ export default function Search() {
             {expandedItems.has(index) && (
               <div className="px-4 pb-4 space-y-3 bg-threshold-bg-secondary border-t border-gray-200">
                 {item.adviceContext && (
-                  <div className="text-gray-600 italic">
+                  <div className="text-gray-600 italic normal-case">
                     {item.adviceContext}
                   </div>
                 )}
@@ -147,7 +147,7 @@ export default function Search() {
                     href={item.sourceLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-threshold-orange hover:text-threshold-orange-dark transition-colors"
+                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors normal-case"
                   >
                     {item.sourceTitle} - {item.sourceType}
                     <ExternalLink className="w-4 h-4" />

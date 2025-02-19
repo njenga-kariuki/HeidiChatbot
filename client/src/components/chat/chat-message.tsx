@@ -8,19 +8,43 @@ interface ChatMessageProps {
 }
 
 export default function ChatMessage({ message, onFeedbackSubmitted }: ChatMessageProps) {
+  // Format the response to preserve line breaks while keeping HTML links intact
+  const formatResponse = (text: string): string => {
+    if (!text) return "";
+    
+    return text
+      // Replace double newlines with paragraph breaks
+      .replace(/\n\n/g, '</p><p>')
+      // Replace single newlines with <br />
+      .replace(/\n/g, '<br />')
+      // Fix any cases where we might have inserted breaks inside HTML tags
+      .replace(/<br \/><a/g, '<a')
+      .replace(/<\/a><br \/>/g, '</a>')
+      // Ensure proper paragraph wrapping
+      .replace(/^(.+?)(?=<\/p>|$)/, '<p>$1')
+      // Handle the "For more insights" section and source links
+      .replace(
+        /<p>For more insights, check out:<br \/>(.*?)(?=<p>|$)/g,
+        '<div class="mt-4"><span class="font-medium">For more insights, check out:</span><ul class="pl-5 mt-0">$1</ul></div>'
+      )
+      // Convert bullets to list items, preserving links
+      .replace(/•\s*(<a.*?<\/a>)/g, '<li>$1</li>');
+  };
+
   return (
     <Card className="overflow-hidden border-gray-200">
       <CardContent className="p-6">
-        <div className="mb-4">
-          <h3 className="font-medium text-gray-900">Your Question</h3>
-          <p className="mt-1 text-gray-600">{message.query}</p>
+        <div className="mb-6">
+          <h3 className="font-medium text-threshold-text-primary mb-2">Your Question</h3>
+          <p className="text-threshold-text-secondary">{message.query}</p>
         </div>
 
         <div>
-          <h3 className="font-medium text-gray-900">Heidi's Response</h3>
+          <h3 className="font-medium text-threshold-text-primary mb-2">Heidi's Response</h3>
           <div 
-            className="mt-1 prose prose-gray max-w-none"
-            dangerouslySetInnerHTML={{ __html: message.finalResponse || "" }}
+            className="prose prose-gray max-w-none prose-p:text-threshold-text-secondary prose-headings:text-threshold-text-primary
+            prose-a:text-blue-600 hover:prose-a:text-blue-800 prose-a:no-underline prose-p:my-3"
+            dangerouslySetInnerHTML={{ __html: formatResponse(message.finalResponse || "") }}
           />
         </div>
 

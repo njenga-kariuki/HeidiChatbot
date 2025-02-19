@@ -33,7 +33,7 @@ export default function ChatInput({ onSubmit, isLoading }: ChatInputProps) {
             }
           }
         }}
-        className="min-h-[100px] resize-none"
+        className="min-h-[100px] resize-none rounded-xl border-gray-100 focus:border-threshold-orange focus:ring focus:ring-threshold-orange/20 placeholder:text-threshold-text-primary"
       />
       <Button
         type="submit"
@@ -43,7 +43,7 @@ export default function ChatInput({ onSubmit, isLoading }: ChatInputProps) {
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Getting Heidi's Advice...
+            Working on it...
           </>
         ) : (
           "Ask Heidi"

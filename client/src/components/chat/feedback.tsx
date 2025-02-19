@@ -42,14 +42,15 @@ export default function Feedback({ messageId, onFeedbackSubmitted }: FeedbackPro
   });
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="mt-6 space-y-4 border-t border-gray-100 pt-6">
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-500">Was this response helpful?</span>
+        <span className="text-sm text-threshold-text-muted">Was this response helpful?</span>
         <Button
           variant="outline"
           size="sm"
           onClick={() => mutation.mutate({ thumbsUp: true })}
           disabled={mutation.isPending}
+          className="hover:text-threshold-orange hover:border-threshold-orange"
         >
           <ThumbsUp className="h-4 w-4" />
         </Button>
@@ -61,6 +62,7 @@ export default function Feedback({ messageId, onFeedbackSubmitted }: FeedbackPro
             mutation.mutate({ thumbsUp: false });
           }}
           disabled={mutation.isPending}
+          className="hover:text-threshold-orange hover:border-threshold-orange"
         >
           <ThumbsDown className="h-4 w-4" />
         </Button>
@@ -72,11 +74,12 @@ export default function Feedback({ messageId, onFeedbackSubmitted }: FeedbackPro
             placeholder="What could be improved? (Optional)"
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
-            className="h-24"
+            className="h-24 border-gray-200 focus:border-threshold-orange focus:ring focus:ring-threshold-orange/20"
           />
           <Button
             onClick={() => mutation.mutate({ thumbsUp: false })}
             disabled={mutation.isPending}
+            variant="outline"
           >
             Submit Feedback
           </Button>
