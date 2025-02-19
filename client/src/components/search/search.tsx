@@ -120,11 +120,11 @@ export default function Search() {
               className="p-4 cursor-pointer hover:bg-threshold-bg-secondary flex justify-between items-start group"
             >
               <div className="space-y-2">
-                <div className="text-sm text-threshold-text-muted normal-case">
+                <div className="text-sm text-threshold-text-muted">
                   <span className="text-threshold-orange mr-1">•</span>
                   {item.category} → {item.subCategory}
                 </div>
-                <div className="font-medium text-threshold-text-primary group-hover:text-threshold-orange transition-colors normal-case">
+                <div className="font-medium text-threshold-text-primary group-hover:text-threshold-orange transition-colors">
                   {item.advice}
                 </div>
               </div>
