@@ -50,7 +50,16 @@ export function useAdviceSearch({
         "GET", 
         `/api/advice/search?${params.toString()}`
       );
-      return res.json() as Promise<SearchResponse>;
+      const data = await res.json() as SearchResponse;
+      if (data.entries?.[0]) {
+        console.log('Sample entry case:', {
+          category: data.entries[0].category,
+          categoryCharCodes: [...data.entries[0].category].map(c => c.charCodeAt(0)),
+          subCategory: data.entries[0].subCategory,
+          advice: data.entries[0].advice.substring(0, 50)
+        });
+      }
+      return data;
     }
   });
 
@@ -59,4 +68,4 @@ export function useAdviceSearch({
     isLoading,
     error
   };
-} 
+}
