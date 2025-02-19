@@ -1,6 +1,7 @@
 import Papa from 'papaparse';
 import fs from 'fs';
 import { AdviceEntry } from './types';
+import path from 'path';
 
 export class DataLoader {
   private static instance: DataLoader;
@@ -64,6 +65,13 @@ export class DataLoader {
 
   public async loadData(filePath: string): Promise<void> {
     try {
+      console.log('[DEBUG] DataLoader.loadData:', {
+        attemptedPath: filePath,
+        absolutePath: path.resolve(filePath),
+        exists: fs.existsSync(filePath),
+        workingDir: process.cwd()
+      });
+
       console.log('Loading data from:', filePath);
       console.log('Current working directory:', process.cwd());
       
@@ -73,6 +81,12 @@ export class DataLoader {
 
       // Read and clean the file content
       const cleanedContent = this.readAndCleanFile(filePath);
+
+      console.log('[DEBUG] File read complete:', {
+        contentLength: cleanedContent.length,
+        firstLine: cleanedContent.split('\n')[0],
+        encoding: 'utf-8'
+      });
 
       console.log(`File loaded. Content length: ${cleanedContent.length} characters`);
       console.log('First 200 characters:', cleanedContent.substring(0, 200));

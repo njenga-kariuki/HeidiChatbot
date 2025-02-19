@@ -92,6 +92,13 @@ app.use((req, res, next) => {
 
     console.log('[DEBUG] Starting system initialization...');
     const csvPath = './server/data/advice.csv';
+    const absolutePath = path.resolve(process.cwd(), csvPath);
+    console.log('[DEBUG] CSV Path Resolution:', {
+      workingDir: process.cwd(),
+      relativePath: csvPath,
+      absolutePath,
+      fileExists: fs.existsSync(absolutePath)
+    });
     await initializeSystem(csvPath);
     console.log('[DEBUG] System initialization complete');
 

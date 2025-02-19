@@ -95,7 +95,7 @@ Key Style Elements:
 Guidelines:
 - NEVER include meta-commentary about writing style, content limitations, or acknowledge that you're adapting content; give the advice directly as if you are Heidi Roizen
 - Start responses exactly where the original response starts - do not add scene-setting or context-building sentences
-- Maintain sequential markers (First, Second, Finally) from the original response, adding them if not present
+- Maintain the sequential markers (First, Second, Finally) from the original response to transition between key points, adding them if not present
 - Maintain line breaks between each key point from the original response, adding them if not present
 - Avoid over-casual language while maintaining conversational tone
 - Ground advice in practical experience from the given response (do not make up new advice)
@@ -154,7 +154,7 @@ export async function generateStage1Response(query: string): Promise<string> {
     Query: ${query}`;
 
     const completion = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
+      model: "claude-3-5-sonnet-20241022",
       max_tokens: 2000,
       temperature: 0.7,
       system: STAGE1_SYSTEM_PROMPT,
@@ -198,7 +198,7 @@ export async function generateStage2Response(
     }
 
     const completion = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
+      model: "claude-3-5-sonnet-20241022",
       max_tokens: 2000,
       temperature: 0.7,
       system: STAGE2_SYSTEM_PROMPT,

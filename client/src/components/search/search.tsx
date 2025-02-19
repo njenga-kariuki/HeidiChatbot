@@ -45,18 +45,28 @@ export default function Search() {
     );
   }
 
+  if (isLoading || !data) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-threshold-orange" />
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card className="p-6">
         <div className="space-y-4">
           <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-threshold-text-muted w-5 h-5" />
             <Input
               type="text"
               placeholder="Search advice..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 border-gray-200 focus:border-threshold-orange focus:ring focus:ring-threshold-orange/20"
             />
           </div>
 
@@ -65,12 +75,12 @@ export default function Search() {
               value={selectedCategory ?? undefined} 
               onValueChange={setSelectedCategory}
             >
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-[200px] border-gray-200 focus:ring-threshold-orange/20">
                 {selectedCategory || "All Categories"}
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {data.categories.map((cat: string) => (
+                {data?.categories?.map((cat: string) => (
                   <SelectItem key={cat} value={cat}>
                     {cat}
                   </SelectItem>
@@ -85,12 +95,12 @@ export default function Search() {
                 setSelectedCategory(null);
               }}
             >
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-[200px] border-gray-200 focus:ring-threshold-orange/20">
                 {selectedSubCategory || "All Subcategories"}
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Subcategories</SelectItem>
-                {data.subCategories.map((subcat: string) => (
+                {data?.subCategories?.map((subcat: string) => (
                   <SelectItem key={subcat} value={subcat}>
                     {subcat}
                   </SelectItem>
@@ -102,81 +112,77 @@ export default function Search() {
       </Card>
 
       {/* Results */}
-      {isLoading ? (
-        <Card className="p-6">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-          </div>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {data.entries.map((item: AdviceEntry, index: number) => (
-            <Card key={index} className="overflow-hidden">
-              <div
-                onClick={() => toggleExpand(index)}
-                className="p-4 cursor-pointer hover:bg-gray-50 flex justify-between items-start"
-              >
-                <div className="space-y-2">
-                  <div className="text-sm text-gray-500">
-                    {item.category} → {item.subCategory}
-                  </div>
-                  <div className="font-medium">{item.advice}</div>
+      <div className="space-y-4">
+        {data.entries.map((item: AdviceEntry, index: number) => (
+          <Card key={index} className="overflow-hidden border-gray-100 transition-shadow hover:shadow-md">
+            <div
+              onClick={() => toggleExpand(index)}
+              className="p-4 cursor-pointer hover:bg-threshold-bg-secondary flex justify-between items-start group"
+            >
+              <div className="space-y-2">
+                <div className="text-sm text-threshold-text-muted">
+                  <span className="text-threshold-orange mr-1">•</span>
+                  {item.category} → {item.subCategory}
                 </div>
-                {expandedItems.has(index) ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                <div className="font-medium text-threshold-text-primary group-hover:text-threshold-orange transition-colors">
+                  {item.advice}
+                </div>
+              </div>
+              {expandedItems.has(index) ? (
+                <ChevronUp className="w-5 h-5 text-threshold-text-muted group-hover:text-threshold-orange" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-threshold-text-muted group-hover:text-threshold-orange" />
+              )}
+            </div>
+            
+            {expandedItems.has(index) && (
+              <div className="px-4 pb-4 space-y-3 bg-threshold-bg-secondary border-t border-gray-200">
+                {item.adviceContext && (
+                  <div className="text-gray-600 italic">
+                    {item.adviceContext}
+                  </div>
+                )}
+                {item.sourceLink && (
+                  <a
+                    href={item.sourceLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-threshold-orange hover:text-threshold-orange-dark transition-colors"
+                  >
+                    {item.sourceTitle} - {item.sourceType}
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
                 )}
               </div>
-              
-              {expandedItems.has(index) && (
-                <div className="px-4 pb-4 space-y-3 bg-gray-50">
-                  {item.adviceContext && (
-                    <div className="text-gray-600 italic">
-                      {item.adviceContext}
-                    </div>
-                  )}
-                  {item.sourceLink && (
-                    <a
-                      href={item.sourceLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
-                    >
-                      {item.sourceTitle} - {item.sourceType}
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  )}
-                </div>
-              )}
-            </Card>
-          ))}
+            )}
+          </Card>
+        ))}
 
-          {data.total > 0 && (
-            <div className="flex justify-between items-center pt-4">
-              <div className="text-sm text-gray-500">
-                Showing {data.from} to {data.to} of {data.total} results
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(p => p - 1)}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  disabled={currentPage === data.totalPages}
-                >
-                  Next
-                </Button>
-              </div>
+        {data.total > 0 && (
+          <div className="flex justify-between items-center pt-4">
+            <div className="text-sm text-gray-500">
+              Showing {data.from} to {data.to} of {data.total} results
             </div>
-          )}
-        </div>
-      )}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage(p => p - 1)}
+                disabled={currentPage === 1}
+                className="border-gray-200 hover:bg-threshold-bg-secondary hover:text-threshold-orange focus:ring-threshold-orange/20"
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage(p => p + 1)}
+                disabled={currentPage === data.totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 } 
