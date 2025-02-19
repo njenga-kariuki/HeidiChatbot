@@ -120,7 +120,7 @@ export default function Search() {
               className="p-4 cursor-pointer hover:bg-threshold-bg-secondary flex justify-between items-start group"
             >
               <div className="space-y-2">
-                <div className="text-sm text-threshold-text-muted">
+                <div className="text-sm text-threshold-text-muted [text-transform:none]">
                   <span className="text-threshold-orange mr-1">•</span>
                   {item.category} → {item.subCategory}
                 </div>
