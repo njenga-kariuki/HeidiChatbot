@@ -22,7 +22,21 @@ export default function Search() {
     searchTerm,
     selectedCategory,
     selectedSubCategory,
-    page: currentPage
+    page: currentPage,
+    onData: (searchData) => {
+      if (searchData?.entries?.[0]) {
+        console.log('Raw entry data:', {
+          category: searchData.entries[0].category,
+          subCategory: searchData.entries[0].subCategory,
+          advice: searchData.entries[0].advice
+        });
+      }
+    }
+  });
+
+  console.log('Computed styles:', {
+    cardText: window.getComputedStyle(document.querySelector('.text-sm.text-threshold-text-muted') || document.body),
+    itemText: window.getComputedStyle(document.querySelector('.font-medium.text-threshold-text-primary') || document.body)
   });
 
   const toggleExpand = (index: number) => {
