@@ -22,16 +22,7 @@ export default function Search() {
     searchTerm,
     selectedCategory,
     selectedSubCategory,
-    page: currentPage,
-    onData: (searchData) => {
-      if (searchData?.entries?.[0]) {
-        console.log('Raw entry data:', {
-          category: searchData.entries[0].category,
-          subCategory: searchData.entries[0].subCategory,
-          advice: searchData.entries[0].advice
-        });
-      }
-    }
+    page: currentPage
   });
 
   console.log('Computed styles:', {

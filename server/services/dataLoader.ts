@@ -19,7 +19,6 @@ export class DataLoader {
   private preprocessText(text: string): string {
     if (!text) return '';
     return text
-      .toLowerCase()
       .replace(/\s+/g, ' ')
       .replace(/[.,!?;:'"]/g, ' ')
       .replace(/\(|\)/g, ' ')
