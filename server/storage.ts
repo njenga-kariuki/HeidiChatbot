@@ -1,11 +1,12 @@
 import { messages, type Message, type InsertMessage } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
   getMessage(id: number): Promise<Message | undefined>;
   updateMessage(id: number, updates: Partial<Message>): Promise<Message>;
+  getLatestMessages(limit: number): Promise<Message[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -46,6 +47,14 @@ export class DatabaseStorage implements IStorage {
     }
 
     return message;
+  }
+
+  async getLatestMessages(limit: number): Promise<Message[]> {
+    return db
+      .select()
+      .from(messages)
+      .orderBy(desc(messages.createdAt))
+      .limit(limit);
   }
 }
 

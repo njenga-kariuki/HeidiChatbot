@@ -178,7 +178,7 @@ export async function generateStage1Response(query: string): Promise<string> {
 
 export async function generateStage2Response(
   stage1Response: string,
-): Promise<string> {
+): Promise<AsyncIterable<string>> {
   try {
     if (typeof stage1Response !== "string") {
       throw new Error("Invalid Stage 1 response type");
@@ -190,28 +190,70 @@ export async function generateStage2Response(
         "I don't have any specific advice about this topic",
       )
     ) {
-      return stage1Response;
+      return {
+        [Symbol.asyncIterator]() {
+          let hasEmitted = false;
+          return {
+            async next() {
+              if (!hasEmitted) {
+                hasEmitted = true;
+                return { done: false, value: stage1Response };
+              }
+              return { done: true, value: undefined };
+            }
+          };
+        }
+      };
     }
 
     if (stage1Response.trim() === "") {
       throw new Error("Stage 1 response is empty");
     }
 
-    const completion = await anthropic.messages.create({
+    const stream = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022",
       max_tokens: 2000,
       temperature: 0.7,
       system: STAGE2_SYSTEM_PROMPT,
       messages: [{ role: "user", content: stage1Response }],
+      stream: true
     });
 
-    console.log("Stage 2 completion:", JSON.stringify(completion, null, 2));
+    // Create an async iterator that consumes the stream only once
+    let streamIterator = stream[Symbol.asyncIterator]();
+    let isStreamConsumed = false;
 
-    if (!completion.content || completion.content.length === 0) {
-      throw new Error("No content received from Claude API in Stage 2");
-    }
+    return {
+      [Symbol.asyncIterator]() {
+        if (isStreamConsumed) {
+          throw new Error("Stream has already been consumed");
+        }
+        
+        return {
+          async next() {
+            try {
+              const result = await streamIterator.next();
+              
+              if (result.done) {
+                isStreamConsumed = true;
+                return { done: true, value: undefined };
+              }
 
-    return completion.content[0].text;
+              const chunk = result.value;
+              if (chunk.type === 'content_block_delta' && chunk.delta?.text) {
+                return { done: false, value: chunk.delta.text };
+              }
+              
+              // Skip non-text chunks by continuing to the next iteration
+              return this.next();
+            } catch (error) {
+              isStreamConsumed = true;
+              throw error;
+            }
+          }
+        };
+      }
+    };
   } catch (error: any) {
     console.error("Stage 2 generation error:", error);
     throw new Error(`Stage 2 generation failed: ${error.message}`);
