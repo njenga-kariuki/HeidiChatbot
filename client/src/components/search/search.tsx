@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useAdviceSearch } from "@/hooks/use-advice-search";
-import type { AdviceEntry } from "@shared/schema";
+import type { SearchAdviceEntry } from "@shared/schema";
 
 export default function Search() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -118,7 +118,7 @@ export default function Search() {
 
       {/* Results */}
       <div className="space-y-4">
-        {data.entries.map((item: AdviceEntry, index: number) => (
+        {data.entries.map((item: SearchAdviceEntry, index: number) => (
           <Card key={index} className="overflow-hidden border-gray-100 transition-shadow hover:shadow-md">
             <div
               onClick={() => toggleExpand(index)}
@@ -130,36 +130,39 @@ export default function Search() {
                   {item.category} → {item.subCategory}
                 </div>
                 <div className="font-medium text-threshold-text-primary group-hover:text-threshold-orange transition-colors [text-transform:initial]">
-                  {item.advice}
+                  {item.rawAdvice}
                 </div>
+                {expandedItems.has(index) && (
+                  <>
+                    {item.rawAdviceContext && (
+                      <div className="mt-4 text-sm text-threshold-text-muted [text-transform:initial] italic">
+                        {item.rawAdviceContext}
+                      </div>
+                    )}
+                    {item.sourceLink && (
+                      <div className="mt-4 flex items-center gap-2">
+                        <a
+                          href={item.sourceLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {item.sourceTitle}
+                          {item.sourceType && <span className="text-threshold-text-muted">({item.sourceType})</span>}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
               {expandedItems.has(index) ? (
-                <ChevronUp className="w-5 h-5 text-threshold-text-muted group-hover:text-threshold-orange" />
+                <ChevronUp className="w-5 h-5 text-threshold-text-muted group-hover:text-threshold-orange flex-shrink-0" />
               ) : (
-                <ChevronDown className="w-5 h-5 text-threshold-text-muted group-hover:text-threshold-orange" />
+                <ChevronDown className="w-5 h-5 text-threshold-text-muted group-hover:text-threshold-orange flex-shrink-0" />
               )}
             </div>
-            
-            {expandedItems.has(index) && (
-              <div className="px-4 pb-4 space-y-3 bg-threshold-bg-secondary border-t border-gray-200">
-                {item.adviceContext && (
-                  <div className="text-gray-600 italic normal-case">
-                    {item.adviceContext}
-                  </div>
-                )}
-                {item.sourceLink && (
-                  <a
-                    href={item.sourceLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors normal-case"
-                  >
-                    {item.sourceTitle} - {item.sourceType}
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                )}
-              </div>
-            )}
           </Card>
         ))}
 
@@ -181,6 +184,7 @@ export default function Search() {
                 variant="outline"
                 onClick={() => setCurrentPage(p => p + 1)}
                 disabled={currentPage === data.totalPages}
+                className="border-gray-200 hover:bg-threshold-bg-secondary hover:text-threshold-orange focus:ring-threshold-orange/20"
               >
                 Next
               </Button>

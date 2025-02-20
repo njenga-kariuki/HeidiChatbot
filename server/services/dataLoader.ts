@@ -1,11 +1,35 @@
 import Papa from 'papaparse';
 import fs from 'fs';
-import { AdviceEntry } from './types';
+import { AdviceEntry, SearchAdviceEntry } from '@shared/schema';
 import path from 'path';
+
+// Type guard for raw CSV data
+interface RawCSVRow {
+  Category: string;
+  SubCategory: string;
+  Advice: string;
+  AdviceContext: string;
+  SourceTitle: string;
+  SourceType: string;
+  SourceLink: string;
+}
+
+function isValidRawRow(row: unknown): row is RawCSVRow {
+  const r = row as RawCSVRow;
+  return (
+    typeof r?.Category === 'string' &&
+    typeof r?.SubCategory === 'string' &&
+    typeof r?.Advice === 'string' &&
+    typeof r?.AdviceContext === 'string' &&
+    typeof r?.SourceTitle === 'string' &&
+    typeof r?.SourceType === 'string' &&
+    typeof r?.SourceLink === 'string'
+  );
+}
 
 export class DataLoader {
   private static instance: DataLoader;
-  private adviceData: AdviceEntry[] = [];
+  private adviceData: SearchAdviceEntry[] = [];
 
   private constructor() {}
 
@@ -18,6 +42,7 @@ export class DataLoader {
 
   private preprocessText(text: string): string {
     if (!text) return '';
+    
     return text
       .replace(/\s+/g, ' ')
       .replace(/[.,!?;:'"]/g, ' ')
@@ -25,131 +50,98 @@ export class DataLoader {
       .trim();
   }
 
-  private validateEntry(entry: AdviceEntry): boolean {
-    return !!(
+  private validateSearchEntry(entry: SearchAdviceEntry): boolean {
+    const isValid = !!(
       entry?.advice?.trim() &&
       entry?.category?.trim() &&
-      entry?.subCategory?.trim()
+      entry?.subCategory?.trim() &&
+      entry?.rawAdvice &&
+      entry?.rawAdviceContext !== undefined
     );
-  }
 
-  private preprocessAdviceEntry(row: any): AdviceEntry {
-    return {
-      category: this.preprocessText(row.Category || row.category),
-      subCategory: this.preprocessText(row.SubCategory || row.subCategory),
-      advice: this.preprocessText(row.Advice || row.advice),
-      adviceContext: this.preprocessText(row.AdviceContext || row.adviceContext),
-      sourceTitle: (row.SourceTitle || row.sourceTitle || '').trim(),
-      sourceLink: (row.SourceLink || row.sourceLink || '').trim(),
-      sourceType: (row.SourceType || row.sourceType || '').trim()
-    };
+    if (!isValid) {
+      console.warn('Invalid search entry:', {
+        hasAdvice: !!entry?.advice,
+        hasCategory: !!entry?.category,
+        hasSubCategory: !!entry?.subCategory,
+        hasRawAdvice: !!entry?.rawAdvice,
+        hasRawContext: entry?.rawAdviceContext !== undefined
+      });
+    }
+
+    return isValid;
   }
 
   private readAndCleanFile(filePath: string): string {
-    // Read file with UTF-8 encoding and BOM
     const content = fs.readFileSync(filePath, { encoding: 'utf-8' });
-    console.log(`Raw file size: ${content.length} bytes`);
-    
-    // Remove BOM if present and normalize line endings
-    const cleaned = content
+    return content
       .replace(/^\uFEFF/, '')
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n')
       .trim();
-
-    console.log(`Cleaned file size: ${cleaned.length} bytes`);
-    console.log(`Number of lines: ${cleaned.split('\n').length}`);
-    return cleaned;
   }
 
   public async loadData(filePath: string): Promise<void> {
     try {
-      console.log('[DEBUG] DataLoader.loadData:', {
-        attemptedPath: filePath,
-        absolutePath: path.resolve(filePath),
-        exists: fs.existsSync(filePath),
-        workingDir: process.cwd()
-      });
-
-      console.log('Loading data from:', filePath);
-      console.log('Current working directory:', process.cwd());
-      
       if (!fs.existsSync(filePath)) {
         throw new Error(`File not found: ${filePath}`);
       }
 
-      // Read and clean the file content
       const cleanedContent = this.readAndCleanFile(filePath);
-
-      console.log('[DEBUG] File read complete:', {
-        contentLength: cleanedContent.length,
-        firstLine: cleanedContent.split('\n')[0],
-        encoding: 'utf-8'
-      });
-
-      console.log(`File loaded. Content length: ${cleanedContent.length} characters`);
-      console.log('First 200 characters:', cleanedContent.substring(0, 200));
-
-      // Parse CSV with complete configuration
-      console.log('Starting CSV parse...');
+      
       const parseResult = Papa.parse(cleanedContent, {
         header: true,
-        skipEmptyLines: 'greedy',
-        delimiter: ',',
-        newline: '\n',
-        quoteChar: '"',
-        escapeChar: '"',
-        comments: false,
-        transformHeader: (header) => header.trim(),
-        transform: (value) => value?.trim() || '',
-        error: (error) => {
-          console.error('Papa Parse error:', error);
-        },
-        encoding: "UTF-8",
-        complete: (results) => {
-          console.log('Parse complete. Row count:', results.data.length);
-        }
+        skipEmptyLines: true,
       });
 
-      // Log any parsing errors or warnings
       if (parseResult.errors.length > 0) {
-        console.warn('CSV parsing warnings:', 
-          parseResult.errors.map(err => ({
-            type: err.type,
-            code: err.code,
-            message: err.message,
-            row: err.row
-          }))
-        );
+        console.warn('CSV parsing warnings:', parseResult.errors);
       }
 
       if (!parseResult.data || parseResult.data.length === 0) {
         throw new Error('No data parsed from CSV');
       }
 
-      console.log('CSV Parse Results:', {
-        totalRows: parseResult.data.length,
-        headers: parseResult.meta.fields,
-        sampleRow: parseResult.data[0]
-      });
+      const processedEntries: SearchAdviceEntry[] = [];
+      let skippedRows = 0;
+      let invalidRows = 0;
 
-      // Process entries
-      const processedEntries = parseResult.data
-        .filter(row => {
-          // Check if row has all required fields
-          const hasAllFields = row.Category && row.SubCategory && row.Advice;
-          if (!hasAllFields) {
-            console.warn('Skipping invalid row:', row);
+      for (const row of parseResult.data) {
+        if (!isValidRawRow(row)) {
+          invalidRows++;
+          continue;
+        }
+
+        try {
+          const entry: SearchAdviceEntry = {
+            category: row.Category.trim(),
+            subCategory: row.SubCategory.trim(),
+            advice: this.preprocessText(row.Advice),
+            adviceContext: this.preprocessText(row.AdviceContext),
+            sourceTitle: row.SourceTitle.trim(),
+            sourceType: row.SourceType.trim(),
+            sourceLink: row.SourceLink.trim(),
+            rawAdvice: row.Advice,
+            rawAdviceContext: row.AdviceContext
+          };
+
+          if (this.validateSearchEntry(entry)) {
+            processedEntries.push(entry);
+          } else {
+            skippedRows++;
           }
-          return hasAllFields;
-        })
-        .map(row => this.preprocessAdviceEntry(row))
-        .filter(entry => this.validateEntry(entry));
+        } catch (err) {
+          console.error('Error processing row:', { row, error: err });
+          skippedRows++;
+        }
+      }
 
-      console.log('Processing Summary:', {
+      console.log('Data Processing Summary:', {
         totalRows: parseResult.data.length,
         validEntries: processedEntries.length,
-        skippedEntries: parseResult.data.length - processedEntries.length
+        invalidRows,
+        skippedRows,
+        processingRate: `${((processedEntries.length / parseResult.data.length) * 100).toFixed(1)}%`
       });
 
       if (processedEntries.length === 0) {
@@ -158,24 +150,54 @@ export class DataLoader {
 
       this.adviceData = processedEntries;
 
-      // Log sample of processed entries
-      console.log('Sample of processed entries:', 
-        processedEntries.slice(0, 3).map(entry => ({
-          category: entry.category,
-          subCategory: entry.subCategory,
-          adviceLength: entry.advice?.length,
-          hasContext: !!entry.adviceContext
-        }))
-      );
+      const processed = this.getData();
+      if (processed.length > 0) {
+        const sampleProcessed = processed[0];
+        console.log('Format Validation:', {
+          hasRequiredFields: Object.keys(sampleProcessed).sort().join(','),
+          maintainsFormat: Object.keys(sampleProcessed).length === 7 && 
+            'advice' in sampleProcessed &&
+            'category' in sampleProcessed &&
+            'subCategory' in sampleProcessed
+        });
+      }
 
     } catch (error) {
-      console.error('Error details:', error);
-      throw new Error(`Failed to load advice data: ${error.message}`);
+      const err = error as Error;
+      console.error('Data loading error:', {
+        message: err.message,
+        stack: err.stack,
+        type: err.name
+      });
+      throw new Error(`Failed to load advice data: ${err.message}`);
     }
   }
 
   public getData(): AdviceEntry[] {
-    return this.adviceData;
+    // Return processed version for vector search and chat
+    const processed = this.adviceData.map(entry => ({
+      category: entry.category,
+      subCategory: entry.subCategory,
+      advice: entry.advice,
+      adviceContext: entry.adviceContext,
+      sourceTitle: entry.sourceTitle,
+      sourceType: entry.sourceType,
+      sourceLink: entry.sourceLink,
+    }));
+
+    // Validate processed data
+    console.log('getData Validation:', {
+      totalEntries: processed.length,
+      sampleEntry: processed[0] ? Object.keys(processed[0]).sort().join(',') : 'no entries',
+      maintainsFormat: processed.every(entry => 
+        Object.keys(entry).length === 7 && // Ensure exact field count
+        'advice' in entry &&
+        'category' in entry &&
+        'subCategory' in entry
+      )
+    });
+
+    return processed;
   }
 
   public getCategories(): string[] {
@@ -193,7 +215,7 @@ export class DataLoader {
     page: number;
     pageSize: number;
   }): {
-    entries: AdviceEntry[];
+    entries: SearchAdviceEntry[];
     total: number;
     from: number;
     to: number;
@@ -203,7 +225,7 @@ export class DataLoader {
     
     let filtered = [...this.adviceData];
 
-    // Apply filters
+    // Apply filters using processed text for search
     if (query) {
       const searchTerm = query.toLowerCase();
       filtered = filtered.filter(entry =>

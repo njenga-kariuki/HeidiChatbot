@@ -1,22 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { AdviceEntry } from "@shared/schema";
+import type { SearchResponse, SearchAdviceEntry } from "@shared/schema";
 
 interface UseAdviceSearchProps {
   searchTerm: string;
   selectedCategory: string | null;
   selectedSubCategory: string | null;
   page: number;
-}
-
-interface SearchResponse {
-  entries: AdviceEntry[];
-  categories: string[];
-  subCategories: string[];
-  total: number;
-  from: number;
-  to: number;
-  totalPages: number;
 }
 
 export function useAdviceSearch({

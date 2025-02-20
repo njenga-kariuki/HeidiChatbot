@@ -22,7 +22,7 @@ export default function ChatInput({ onSubmit, isLoading }: ChatInputProps) {
       className="space-y-4"
     >
       <Textarea
-        placeholder="What question or topic do you want Heidi's advice on?"
+        placeholder="Ask a specific question or enter a topic (e.g., 'How to pitch VCs?' or 'fundraising advice')"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
@@ -33,7 +33,7 @@ export default function ChatInput({ onSubmit, isLoading }: ChatInputProps) {
             }
           }
         }}
-        className="min-h-[100px] resize-none rounded-xl border-gray-100 focus:border-threshold-orange focus:ring focus:ring-threshold-orange/20 placeholder:text-threshold-text-primary"
+        className="min-h-[100px] resize-none rounded-xl border-gray-100 focus:border-threshold-orange focus:ring focus:ring-threshold-orange/20 placeholder:text-threshold-text-secondary placeholder:text-center focus:placeholder-transparent"
       />
       <Button
         type="submit"

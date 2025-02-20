@@ -35,8 +35,14 @@ export const adviceEntrySchema = z.object({
   sourceLink: z.string(),
 });
 
+// New schema for search display that preserves original formatting
+export const searchAdviceEntrySchema = adviceEntrySchema.extend({
+  rawAdvice: z.string(),  // Preserves original formatting
+  rawAdviceContext: z.string(),  // Preserves original formatting
+});
+
 export const searchResponseSchema = z.object({
-  entries: z.array(adviceEntrySchema),
+  entries: z.array(searchAdviceEntrySchema),
   categories: z.array(z.string()),
   subCategories: z.array(z.string()),
   total: z.number(),
@@ -49,4 +55,5 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
 export type Feedback = z.infer<typeof feedbackSchema>;
 export type AdviceEntry = z.infer<typeof adviceEntrySchema>;
+export type SearchAdviceEntry = z.infer<typeof searchAdviceEntrySchema>;
 export type SearchResponse = z.infer<typeof searchResponseSchema>;
