@@ -120,40 +120,38 @@ export default function Chat() {
   });
 
   return (
-    <div className="min-h-screen bg-white p-4 md:p-8">
-      <div className="mx-auto max-w-3xl relative pb-12">
-        <Card className="mb-6 p-6">
-          <ChatInput
-            onSubmit={(query) => mutation.mutate(query)}
-            isLoading={mutation.isPending}
-            isSuccess={isStreamComplete}
+    <div className="relative pb-12">
+      <Card className="mb-6 p-6">
+        <ChatInput
+          onSubmit={(query) => mutation.mutate(query)}
+          isLoading={mutation.isPending}
+          isSuccess={isStreamComplete}
+        />
+      </Card>
+
+      {mutation.isPending && streamedContent && (
+        <Card className="mb-4 p-6">
+          <div 
+            className="prose prose-gray max-w-none prose-p:text-threshold-text-secondary prose-headings:text-threshold-text-primary prose-a:text-blue-600 hover:prose-a:text-blue-800 prose-a:no-underline prose-p:my-3"
+            dangerouslySetInnerHTML={{ __html: streamedContent }} 
           />
         </Card>
+      )}
 
-        {mutation.isPending && streamedContent && (
-          <Card className="mb-4 p-6">
-            <div 
-              className="prose prose-gray max-w-none prose-p:text-threshold-text-secondary prose-headings:text-threshold-text-primary prose-a:text-blue-600 hover:prose-a:text-blue-800 prose-a:no-underline prose-p:my-3"
-              dangerouslySetInnerHTML={{ __html: streamedContent }} 
-            />
-          </Card>
-        )}
+      {message && !mutation.isPending && (
+        <ChatMessage
+          message={message}
+          onFeedbackSubmitted={setMessage}
+        />
+      )}
 
-        {message && !mutation.isPending && (
-          <ChatMessage
-            message={message}
-            onFeedbackSubmitted={setMessage}
-          />
-        )}
-
-        {isStreamComplete && (
-          <div className="absolute bottom-0 left-0 right-0 p-2 bg-white/90 backdrop-blur-sm border-t text-center">
-            <p className="text-xs text-gray-400 max-w-3xl mx-auto">
-              May cite past market data and adapt advice. See sources for full context.
-            </p>
-          </div>
-        )}
-      </div>
+      {isStreamComplete && (
+        <div className="absolute bottom-0 left-0 right-0 p-2 bg-white/90 backdrop-blur-sm border-t text-center">
+          <p className="text-xs text-gray-400 max-w-3xl mx-auto">
+            May cite past market data and adapt advice. See sources for full context.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

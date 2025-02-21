@@ -43,7 +43,7 @@ export default function Advice() {
           </button>
         </div>
 
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden bg-white">
           <div className="p-6">
             {mode === "chat" ? <Chat /> : <Search />}
           </div>

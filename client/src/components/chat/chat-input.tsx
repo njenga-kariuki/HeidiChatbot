@@ -41,7 +41,7 @@ export default function ChatInput({ onSubmit, isLoading, isSuccess }: ChatInputP
             }
           }
         }}
-        className="min-h-[100px] resize-none rounded-xl border-gray-100 focus:border-threshold-orange focus:ring focus:ring-threshold-orange/20 placeholder:text-threshold-text-secondary placeholder:text-center focus:placeholder-transparent"
+        className="min-h-[100px] resize-none rounded-xl border-gray-100 focus:border-threshold-orange focus:ring focus:ring-threshold-orange/20 placeholder:text-threshold-text-muted placeholder:text-center focus:placeholder-transparent"
       />
       <Button
         type="submit"
