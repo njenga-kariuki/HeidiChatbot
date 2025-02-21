@@ -33,6 +33,7 @@ export const adviceEntrySchema = z.object({
   sourceTitle: z.string(),
   sourceType: z.string(),
   sourceLink: z.string(),
+  msgSourceTitle: z.string().optional(),
 });
 
 // New schema for search display that preserves original formatting

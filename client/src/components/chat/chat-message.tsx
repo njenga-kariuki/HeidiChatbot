@@ -25,10 +25,17 @@ export default function ChatMessage({ message, onFeedbackSubmitted }: ChatMessag
       // Handle the "For more insights" section and source links
       .replace(
         /<p>For more insights, check out:<br \/>(.*?)(?=<p>|$)/g,
-        '<div class="mt-4"><span class="font-medium">For more insights, check out:</span><ul class="pl-5 mt-0">$1</ul></div>'
+        '<div class="mt-4"><span class="font-medium">For more insights, check out:</span><ul class="pl-5 mt-0 space-y-0.5">$1</ul></div>'
       )
-      // Convert bullets to list items, preserving links
-      .replace(/•\s*(<a.*?<\/a>)/g, '<li>$1</li>');
+      // Convert bullets to list items, preserving links and adding source type if present
+      // First clean up any extra line breaks between bullets
+      .replace(/(<\/a>(?:\s*\([^)]*\))?)\s*<br \/>\s*•/g, '$1•')
+      .replace(/•\s*(<a.*?<\/a>)(?:\s*\((.*?)\))?/g, (match, link, sourceType) => {
+        if (sourceType) {
+          return `<li class="leading-normal">${link}<span class="text-threshold-text-muted"> (${sourceType})</span></li>`;
+        }
+        return `<li class="leading-normal">${link}</li>`;
+      });
   };
 
   return (

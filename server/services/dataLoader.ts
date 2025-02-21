@@ -12,6 +12,7 @@ interface RawCSVRow {
   SourceTitle: string;
   SourceType: string;
   SourceLink: string;
+  MsgSourceTitle?: string;
 }
 
 function isValidRawRow(row: unknown): row is RawCSVRow {
@@ -23,7 +24,8 @@ function isValidRawRow(row: unknown): row is RawCSVRow {
     typeof r?.AdviceContext === 'string' &&
     typeof r?.SourceTitle === 'string' &&
     typeof r?.SourceType === 'string' &&
-    typeof r?.SourceLink === 'string'
+    typeof r?.SourceLink === 'string' &&
+    (r?.MsgSourceTitle === undefined || typeof r?.MsgSourceTitle === 'string')
   );
 }
 
@@ -121,6 +123,7 @@ export class DataLoader {
             sourceTitle: row.SourceTitle.trim(),
             sourceType: row.SourceType.trim(),
             sourceLink: row.SourceLink.trim(),
+            msgSourceTitle: row.MsgSourceTitle?.trim(),
             rawAdvice: row.Advice,
             rawAdviceContext: row.AdviceContext
           };
@@ -183,6 +186,7 @@ export class DataLoader {
       sourceTitle: entry.sourceTitle,
       sourceType: entry.sourceType,
       sourceLink: entry.sourceLink,
+      msgSourceTitle: entry.msgSourceTitle,
     }));
 
     // Validate processed data
@@ -190,7 +194,7 @@ export class DataLoader {
       totalEntries: processed.length,
       sampleEntry: processed[0] ? Object.keys(processed[0]).sort().join(',') : 'no entries',
       maintainsFormat: processed.every(entry => 
-        Object.keys(entry).length === 7 && // Ensure exact field count
+        Object.keys(entry).length >= 7 && // Allow for optional msgSourceTitle
         'advice' in entry &&
         'category' in entry &&
         'subCategory' in entry

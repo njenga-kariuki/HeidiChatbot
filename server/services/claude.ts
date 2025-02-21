@@ -47,14 +47,14 @@ Response Generation Rules:
 2. Response Construction:
    - Combine selected advice points into a coherent narrative
    - For each relevant advice point, incorporate ALL associated context
-   - When using direct quotes, format as: "As I mentioned in my [SourceType] [SourceTitle], '[quote]'"
+   - When using direct quotes, format as: "As I mentioned in [MsgSourceTitle] [SourceTitle], '[quote]'"
    - For paraphrased content, integrate naturally while maintaining accuracy
    - If multiple perspectives exist on a topic, frame them as different valid approaches
    - If no relevant advice exists, respond with: "This area hasn't been covered in my existing advice yet."
 
 3. Source Attribution:
     - End each response with: "\n\nFor more insights, check out:\n"
-    - For each source, format using HTML anchor tags: "• <a href='[sourceLink]'>[Title]</a>"
+    - For each source, format using HTML anchor tags: "• <a href='[sourceLink]'>[Title]</a> ([sourceType])"
     - Include all unique source links from utilized advice points
     - Each source should be on its own line with a line break after
 
@@ -146,6 +146,7 @@ export async function generateStage1Response(query: string): Promise<string> {
     Context: ${result.entry.adviceContext}
     Source: ${result.entry.sourceTitle}
     SourceType: ${result.entry.sourceType}
+    MsgSourceTitle: ${result.entry.msgSourceTitle}
     Link: ${result.entry.sourceLink}
     `,
       )
