@@ -1,15 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 interface ChatInputProps {
   onSubmit: (query: string) => void;
   isLoading: boolean;
+  isSuccess?: boolean;
 }
 
-export default function ChatInput({ onSubmit, isLoading }: ChatInputProps) {
+export default function ChatInput({ onSubmit, isLoading, isSuccess }: ChatInputProps) {
   const [query, setQuery] = useState("");
+
+  // Clear input when success state changes to true
+  useEffect(() => {
+    if (isSuccess) {
+      setQuery("");
+    }
+  }, [isSuccess]);
 
   return (
     <form
@@ -22,7 +30,7 @@ export default function ChatInput({ onSubmit, isLoading }: ChatInputProps) {
       className="space-y-4"
     >
       <Textarea
-        placeholder="Ask a specific question or enter a topic (e.g., 'How to pitch VCs?' or 'fundraising advice')"
+        placeholder="Ask a specific startup question (e.g., 'When should I raise funding?', 'How do I know when to pivot?')"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {

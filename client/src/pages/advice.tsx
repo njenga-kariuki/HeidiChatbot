@@ -14,10 +14,10 @@ export default function Advice() {
           Ask Heidi.
         </h1>
         <p className="mb-8 text-center text-threshold-text-primary text-sm leading-relaxed max-w-2xl mx-auto">
-          Venture wisdom from Heidi Roizen's archive of podcasts, talks, blogs, and 30+ years of straight-shooting startup advice
+          650+ curated insights on startup success from 40 years as a founder, VC & 40+ boards
         </p>
 
-        <div className="flex justify-center gap-8 mb-6 border-b border-gray-100">
+        <div className="flex justify-center gap-4 mb-6 border-b border-gray-100">
           <button
             onClick={() => setMode("chat")}
             className={`flex items-center gap-2 px-2 py-3 border-b-2 transition-colors ${
@@ -29,6 +29,7 @@ export default function Advice() {
             <MessageSquare className="w-4 h-4" />
             Chat
           </button>
+          <div className="self-center w-px h-4 bg-black/[0.08]" />
           <button
             onClick={() => setMode("search")}
             className={`flex items-center gap-2 px-2 py-3 border-b-2 transition-colors ${

@@ -34,10 +34,12 @@ const formatResponse = (text: string): string => {
 export default function Chat() {
   const [message, setMessage] = useState<Message | null>(null);
   const [streamedContent, setStreamedContent] = useState('');
+  const [isStreamComplete, setIsStreamComplete] = useState(false);
   const { toast } = useToast();
 
   const mutation = useMutation({
     mutationFn: async (query: string) => {
+      setIsStreamComplete(false); // Reset at start of new query
       return new Promise<Message>((resolve, reject) => {
         // First create the message via POST
         fetch('/api/chat', {
@@ -77,12 +79,14 @@ export default function Chat() {
                   eventSource.close();
                   setStreamedContent(''); // Clear streamed content
                   setMessage(data.message);
+                  setIsStreamComplete(true); // Set true only when stream is complete
                   resolve(data.message);
                   break;
                   
                 case 'error':
                   eventSource.close();
                   setStreamedContent(''); // Clear streamed content
+                  setIsStreamComplete(false);
                   reject(new Error(data.error));
                   break;
               }
@@ -117,11 +121,12 @@ export default function Chat() {
 
   return (
     <div className="min-h-screen bg-white p-4 md:p-8">
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-3xl relative pb-12">
         <Card className="mb-6 p-6">
           <ChatInput
             onSubmit={(query) => mutation.mutate(query)}
             isLoading={mutation.isPending}
+            isSuccess={isStreamComplete}
           />
         </Card>
 
@@ -139,6 +144,14 @@ export default function Chat() {
             message={message}
             onFeedbackSubmitted={setMessage}
           />
+        )}
+
+        {isStreamComplete && (
+          <div className="absolute bottom-0 left-0 right-0 p-2 bg-white/90 backdrop-blur-sm border-t text-center">
+            <p className="text-xs text-gray-400 max-w-3xl mx-auto">
+              May cite past market data and adapt advice. See sources for full context.
+            </p>
+          </div>
         )}
       </div>
     </div>

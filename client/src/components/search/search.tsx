@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search as SearchIcon, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,18 +8,28 @@ import { useAdviceSearch } from "@/hooks/use-advice-search";
 import type { SearchAdviceEntry } from "@shared/schema";
 
 export default function Search() {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedItems, setExpandedItems] = useState(new Set<number>());
   
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchInput);
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const {
     data,
     isLoading,
     error
   } = useAdviceSearch({
-    searchTerm,
+    searchTerm: debouncedSearchTerm,
     selectedCategory,
     selectedSubCategory,
     page: currentPage
@@ -68,23 +78,23 @@ export default function Search() {
             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-threshold-text-muted w-5 h-5" />
             <Input
               type="text"
-              placeholder="Search advice..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 border-gray-200 focus:border-threshold-orange focus:ring focus:ring-threshold-orange/20 normal-case"
+              placeholder="Search topics like 'Fundraising' or '409a'..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-10 border-gray-200 focus:border-threshold-orange focus:ring focus:ring-threshold-orange/20 normal-case focus:placeholder:opacity-0 text-left placeholder:text-center"
             />
           </div>
 
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-4 justify-center">
             <Select 
               value={selectedCategory ?? undefined} 
               onValueChange={setSelectedCategory}
             >
               <SelectTrigger className="w-[200px] border-gray-200 focus:ring-threshold-orange/20 normal-case">
-                {selectedCategory || "All Categories"}
+                {selectedCategory || "All Topics"}
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all" className="normal-case">All Categories</SelectItem>
+                <SelectItem value="all" className="normal-case">All Topics</SelectItem>
                 {data?.categories?.map((cat: string) => (
                   <SelectItem key={cat} value={cat} className="normal-case">
                     {cat}
@@ -101,10 +111,10 @@ export default function Search() {
               }}
             >
               <SelectTrigger className="w-[200px] border-gray-200 focus:ring-threshold-orange/20 normal-case">
-                {selectedSubCategory || "All Subcategories"}
+                {selectedSubCategory || "All Subtopics"}
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all" className="normal-case">All Subcategories</SelectItem>
+                <SelectItem value="all" className="normal-case">All Subtopics</SelectItem>
                 {data?.subCategories?.map((subcat: string) => (
                   <SelectItem key={subcat} value={subcat} className="normal-case">
                     {subcat}
