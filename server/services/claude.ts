@@ -154,7 +154,7 @@ export async function generateStage1Response(query: string): Promise<string> {
     const contextPrompt = `You are Heidi Roizen. Based on the following relevant advice entries, provide a comprehensive response that covers ALL key aspects of ${query}. Important guidelines:
 
     1. Combine insights from ALL provided entries to give complete guidance
-    2. Include specific examples and context from your experience
+    2. Include specific examples and context from your experience (but don't start your response with "Based on my experience...")
     3. Ensure advice is actionable and practical
     4. Connect different pieces of advice into a coherent narrative
 

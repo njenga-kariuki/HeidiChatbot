@@ -5,14 +5,23 @@ import LoadingMessage from "@/components/chat/loading-message";
 import { Message } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 // Shared formatting function for consistent styling
 const formatResponse = (text: string): string => {
   if (!text) return "";
   
-  return text
+  // Log input with more context
+  console.log('formatResponse input:', {
+    text: text.slice(-500), // Show more context
+    length: text.length,
+    endsWithLink: text.endsWith('</a>'),
+    hasSourceType: text.includes('(Youtube)') || text.includes('(Podcast)'),
+    lastNewline: text.slice(-50).lastIndexOf('\n')
+  });
+  
+  const formatted = text
     // Replace double newlines with paragraph breaks
     .replace(/\n\n/g, '</p><p>')
     // Replace single newlines with <br />
@@ -25,10 +34,42 @@ const formatResponse = (text: string): string => {
     // Handle the "For more insights" section and source links
     .replace(
       /<p>For more insights, check out:<br \/>(.*?)(?=<p>|$)/g,
-      '<div class="mt-4"><span class="font-medium">For more insights, check out:</span><ul class="pl-5 mt-0">$1</ul></div>'
+      (match, group1) => {
+        // Add detailed logging of the source section content
+        console.log('Source section debugging:', {
+          fullMatch: match,
+          sourceListContent: group1,
+          containsBullets: group1.includes('•'),
+          containsLineBreaks: group1.includes('<br />'),
+          containsNewlines: group1.includes('\n'),
+          // Log the HTML structure more clearly
+          htmlStructure: group1.split(/(<[^>]+>)/).filter(Boolean).map(part => ({
+            type: part.startsWith('<') ? 'tag' : 'content',
+            value: part
+          }))
+        });
+        
+        return `<div class="mt-4"><span class="font-medium">For more insights, check out:</span><ul class="pl-5 mt-0">${group1}</ul></div>`;
+      }
     )
-    // Convert bullets to list items, preserving links
-    .replace(/•\s*(<a.*?<\/a>)/g, '<li>$1</li>');
+    // Convert bullets to list items, preserving links and source types
+    .replace(/•\s*(<a.*?<\/a>)(\s*\([^)]*\))?/g, (match, link, sourceType) => {
+      console.log('Bullet point conversion:', {
+        fullMatch: match,
+        linkContent: link,
+        sourceType: sourceType || '',
+        precedingChar: text.substring(text.indexOf(match) - 1, text.indexOf(match)),
+        followingChar: text.substring(text.indexOf(match) + match.length, text.indexOf(match) + match.length + 1),
+        surroundingContext: text.substring(
+          Math.max(0, text.indexOf(match) - 20),
+          Math.min(text.length, text.indexOf(match) + match.length + 20)
+        )
+      });
+      
+      return `<li>${link}${sourceType || ''}</li>`;
+    });
+
+  return formatted;
 };
 
 export default function Chat() {
@@ -37,11 +78,26 @@ export default function Chat() {
   const [isStreamComplete, setIsStreamComplete] = useState(false);
   const { toast } = useToast();
 
+  // Function to get current displayed content
+  const displayContent = useMemo(() => {
+    const content = message?.finalResponse && isStreamComplete ? message.finalResponse : streamedContent || '';
+    console.log('Display content update:', {
+      source: message?.finalResponse ? 'finalResponse' : 'streamedContent',
+      hasMessageResponse: !!message?.finalResponse,
+      isStreamComplete,
+      contentLength: content.length,
+      lastChunk: content.slice(-100),
+      hasSourceType: content.includes('(Youtube)') || content.includes('(Podcast)')
+    });
+    return content;
+  }, [message?.finalResponse, streamedContent, isStreamComplete]);
+
   const mutation = useMutation({
     mutationFn: async (query: string) => {
-      setIsStreamComplete(false); // Reset at start of new query
+      console.log('Starting new query');
+      setIsStreamComplete(false);
+      setStreamedContent('');
       return new Promise<Message>((resolve, reject) => {
-        // First create the message via POST
         fetch('/api/chat', {
           method: 'POST',
           headers: {
@@ -49,16 +105,16 @@ export default function Chat() {
           },
           body: JSON.stringify({ query })
         }).then(() => {
-          // Then establish SSE connection
           const eventSource = new EventSource('/api/chat/stream');
           
           eventSource.onmessage = (event) => {
             try {
               const data = JSON.parse(event.data);
+              console.log('SSE message received:', { type: data.type });
               
               switch (data.type) {
                 case 'init':
-                  // Message created, waiting for content
+                  console.log('Initializing message:', data.messageId);
                   setMessage({
                     id: data.messageId,
                     query,
@@ -72,20 +128,29 @@ export default function Chat() {
                   break;
                   
                 case 'content':
-                  setStreamedContent(prev => formatResponse(prev + data.content));
+                  console.log('Content chunk received, length:', data.content.length);
+                  setStreamedContent(prev => {
+                    const updated = formatResponse(prev + data.content);
+                    console.log('Updated streamed content length:', updated.length);
+                    return updated;
+                  });
                   break;
                   
                 case 'complete':
-                  eventSource.close();
-                  setStreamedContent(''); // Clear streamed content
+                  console.log('Complete event received:', {
+                    hasMessageContent: !!data.message?.finalResponse,
+                    contentLength: data.message?.finalResponse?.length
+                  });
                   setMessage(data.message);
-                  setIsStreamComplete(true); // Set true only when stream is complete
+                  setIsStreamComplete(true);
+                  eventSource.close();
                   resolve(data.message);
                   break;
                   
                 case 'error':
+                  console.error('Error event received:', data.error);
                   eventSource.close();
-                  setStreamedContent(''); // Clear streamed content
+                  setStreamedContent('');
                   setIsStreamComplete(false);
                   reject(new Error(data.error));
                   break;
@@ -100,12 +165,13 @@ export default function Chat() {
           eventSource.onerror = (err) => {
             console.error('EventSource error:', err);
             eventSource.close();
-            setStreamedContent(''); // Clear streamed content
+            setStreamedContent('');
+            setIsStreamComplete(false);
             reject(new Error('EventSource connection failed'));
           };
         }).catch(err => {
           console.error('Failed to create message:', err);
-          reject(new Error('Failed to create message'));
+          reject(err);
         });
       });
     },
@@ -129,11 +195,11 @@ export default function Chat() {
         />
       </Card>
 
-      {mutation.isPending && streamedContent && (
+      {mutation.isPending && displayContent && (
         <Card className="mb-4 p-6">
           <div 
             className="prose prose-gray max-w-none prose-p:text-threshold-text-secondary prose-headings:text-threshold-text-primary prose-a:text-blue-600 hover:prose-a:text-blue-800 prose-a:no-underline prose-p:my-3"
-            dangerouslySetInnerHTML={{ __html: streamedContent }} 
+            dangerouslySetInnerHTML={{ __html: displayContent }} 
           />
         </Card>
       )}

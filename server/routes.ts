@@ -114,10 +114,10 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Update storage with final response
-      await storage.updateMessage(message.id, { finalResponse });
+      const updatedMessage = await storage.updateMessage(message.id, { finalResponse });
       
-      // Send completion event
-      res.write(`data: ${JSON.stringify({ type: 'complete', message: message })}\n\n`);
+      // Send completion event with updated message
+      res.write(`data: ${JSON.stringify({ type: 'complete', message: updatedMessage })}\n\n`);
       res.end();
       console.log(`[${requestId}] Request completed successfully`);
 
