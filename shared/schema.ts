@@ -10,6 +10,18 @@ export const messages = pgTable("messages", {
   metadata: json("metadata").$type<{
     sources?: string[];
     categories?: string[];
+    displayEntries?: {
+      entry: {
+        category: string;
+        subCategory: string;
+        advice: string;
+        adviceContext: string;
+        sourceTitle: string;
+        sourceType?: string;
+        sourceLink: string;
+      };
+      similarity: number;
+    }[];
   }>(),
   thumbsUp: boolean("thumbs_up"),
   feedback: text("feedback"),

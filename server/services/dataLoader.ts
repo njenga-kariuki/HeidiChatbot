@@ -33,6 +33,19 @@ export class DataLoader {
   private static instance: DataLoader;
   private adviceData: SearchAdviceEntry[] = [];
 
+  private static SEARCH_TERM_MAPPINGS: Record<string, string[]> = {
+    'fundraising': ['raise money', 'raising capital', 'funding round', 'raise funds'],
+    'hiring': ['recruitment', 'recruiting', 'talent acquisition', 'build team'],
+    'revenue': ['sales', 'arr', 'mrr', 'income'],
+    'product': ['product market fit', 'pmf', 'product development'],
+    'pitch': ['pitch deck', 'investor presentation', 'investor deck'],
+    'board': ['board of directors', 'bod', 'board meeting'],
+    'valuation': ['409a', 'cap table', 'valuation'],
+    'metrics': ['kpi', 'okr', 'metrics', 'measurement'],
+    'strategy': ['go to market', 'gtm', 'strategic planning'],
+    'investment': ['venture capital', 'vc', 'angel investment']
+  };
+
   private constructor() {}
 
   public static getInstance(): DataLoader {
@@ -45,11 +58,49 @@ export class DataLoader {
   private preprocessText(text: string): string {
     if (!text) return '';
     
-    return text
-      .replace(/\s+/g, ' ')
-      .replace(/[.,!?;:'"]/g, ' ')
-      .replace(/\(|\)/g, ' ')
-      .trim();
+    // Preserve common business terms and patterns before general cleaning
+    const preservePatterns = {
+      numbers: /\$?\d+(?:\.\d+)?[KMBkmb]?\b/g,  // Matches $5M, 10K, etc.
+      businessTerms: /\b(?:409a|b2b|b2c|saas|roi|cac|ltv|arpu|ebitda|ipo)\b/gi,  // Common business terms
+      versions: /v\d+(?:\.\d+)*(?:-[a-z]+)?/gi,  // v1.0, v2.0-beta
+      percentages: /\d+%/g,
+    };
+
+    // Create a map of preserved terms and their placeholders
+    const preserved = new Map<string, string>();
+    let processedText = text;
+
+    // Preserve patterns by replacing with placeholders
+    Object.entries(preservePatterns).forEach(([type, pattern]) => {
+      processedText = processedText.replace(pattern, (match) => {
+        const placeholder = `__${type}_${preserved.size}__`;
+        preserved.set(placeholder, match);
+        return placeholder;
+      });
+    });
+
+    // Apply standard text cleaning
+    processedText = processedText
+      .replace(/\s+/g, ' ')  // Normalize whitespace
+      .replace(/[.,!?;:'"]/g, ' ')  // Convert punctuation to spaces
+      .replace(/\(|\)/g, ' ')  // Convert parentheses to spaces
+      .trim()
+      .toLowerCase();
+
+    // Restore preserved terms
+    preserved.forEach((original, placeholder) => {
+      processedText = processedText.replace(placeholder, original.toLowerCase());
+    });
+
+    // Add mapped variations
+    const normalized = processedText.toLowerCase();
+    Object.entries(DataLoader.SEARCH_TERM_MAPPINGS).forEach(([key, variations]) => {
+      if (variations.some(v => normalized.includes(v))) {
+        processedText = `${processedText} ${key}`;
+      }
+    });
+
+    return processedText;
   }
 
   private validateSearchEntry(entry: SearchAdviceEntry): boolean {
@@ -229,16 +280,53 @@ export class DataLoader {
     
     let filtered = [...this.adviceData];
 
-    // Apply filters using processed text for search
+    // Apply filters using processed text for search with weighted scoring
     if (query) {
-      const searchTerm = query.toLowerCase();
-      filtered = filtered.filter(entry =>
-        entry.advice.toLowerCase().includes(searchTerm) ||
-        entry.adviceContext.toLowerCase().includes(searchTerm) ||
-        entry.sourceTitle.toLowerCase().includes(searchTerm)
-      );
+      const searchTerm = this.preprocessText(query).toLowerCase();
+      const terms = searchTerm.split(' ').filter(term => term.length > 0);
+      
+      // Score and filter entries
+      const scoredEntries = filtered.map(entry => {
+        let score = 0;
+        let hasMatch = false;
+
+        // Check for exact phrase match first if multiple terms
+        if (terms.length > 1 && (
+          entry.advice.toLowerCase().includes(searchTerm) || 
+          entry.adviceContext.toLowerCase().includes(searchTerm)
+        )) {
+          score += 2; // Bonus for exact phrase match
+          hasMatch = true;
+        }
+
+        // Then score individual terms
+        for (const term of terms) {
+          // Content match (3x weight)
+          if (entry.advice.toLowerCase().includes(term) || 
+              entry.adviceContext.toLowerCase().includes(term)) {
+            score += 3;
+            hasMatch = true;
+          }
+          
+          // Category/SubCategory match (1x weight)
+          if (entry.category.toLowerCase().includes(term) || 
+              entry.subCategory.toLowerCase().includes(term)) {
+            score += 1;
+            hasMatch = true;
+          }
+        }
+
+        return { entry, score, hasMatch };
+      });
+
+      // Filter out non-matches and sort by score
+      filtered = scoredEntries
+        .filter(item => item.hasMatch)
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.entry);
     }
 
+    // Apply category and subcategory filters (unchanged)
     if (category) {
       filtered = filtered.filter(entry => entry.category === category);
     }
@@ -247,7 +335,7 @@ export class DataLoader {
       filtered = filtered.filter(entry => entry.subCategory === subCategory);
     }
 
-    // Calculate pagination
+    // Calculate pagination (unchanged)
     const total = filtered.length;
     const totalPages = Math.ceil(total / pageSize);
     const from = (page - 1) * pageSize;

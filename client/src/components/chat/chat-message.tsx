@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import Feedback from "./feedback";
+// import RelatedInsights from "./related-insights";
 import type { Message } from "@shared/schema";
 
 interface ChatMessageProps {
@@ -59,6 +60,12 @@ export default function ChatMessage({ message, onFeedbackSubmitted }: ChatMessag
           messageId={message.id} 
           onFeedbackSubmitted={onFeedbackSubmitted}
         />
+
+        {/* Temporarily commented out for re-evaluation
+        {message.metadata?.displayEntries && (
+          <RelatedInsights insights={message.metadata.displayEntries} />
+        )}
+        */}
       </CardContent>
     </Card>
   );

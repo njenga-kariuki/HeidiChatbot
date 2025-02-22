@@ -7,6 +7,7 @@ export interface IStorage {
   getMessage(id: number): Promise<Message | undefined>;
   updateMessage(id: number, updates: Partial<Message>): Promise<Message>;
   getLatestMessages(limit: number): Promise<Message[]>;
+  getAllMessages(): Promise<Message[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -55,6 +56,13 @@ export class DatabaseStorage implements IStorage {
       .from(messages)
       .orderBy(desc(messages.createdAt))
       .limit(limit);
+  }
+
+  async getAllMessages(): Promise<Message[]> {
+    return db
+      .select()
+      .from(messages)
+      .orderBy(desc(messages.createdAt));
   }
 }
 

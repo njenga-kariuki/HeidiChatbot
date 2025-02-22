@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { DataLoader } from "./dataLoader";
 import { VectorSearch } from "./vectorSearch";
 import { VectorSearchResult } from "./types";
+import { storage } from "../storage";
 
 // These are loaded when the server starts
 if (!process.env.CLAUDE_API_KEY || !process.env.OPENAI_API_KEY) {
@@ -118,12 +119,35 @@ The goal is to provide clear, experienced-based guidance while maintaining the a
 
 export async function generateStage1Response(query: string): Promise<string> {
   try {
-    // Perform vector search
     const searchResults = await vectorSearch.search(query, 0.3);
-    console.log("Stage 1 search results:", searchResults.length);
 
     if (searchResults.length === 0) {
       return "I don't have any specific advice about this topic. I focus on providing insights based on my experiences in entrepreneurship, venture capital, and business leadership.";
+    }
+
+    // Split results - top 5 for response, up to 10 for display
+    const responseResults = searchResults.slice(0, 5);
+    const displayResults = searchResults.slice(0, 10);
+
+    // Store display results in metadata
+    const messages = await storage.getLatestMessages(1);
+    if (messages.length > 0) {
+      await storage.updateMessage(messages[0].id, {
+        metadata: {
+          displayEntries: displayResults.map(r => ({
+            entry: {
+              category: r.entry.category,
+              subCategory: r.entry.subCategory,
+              advice: r.entry.advice,
+              adviceContext: r.entry.adviceContext,
+              sourceTitle: r.entry.sourceTitle,
+              sourceType: r.entry.sourceType,
+              sourceLink: r.entry.sourceLink
+            },
+            similarity: r.similarity
+          }))
+        }
+      });
     }
 
     // Enhance the prompt to ensure comprehensive coverage
@@ -136,7 +160,7 @@ export async function generateStage1Response(query: string): Promise<string> {
 
     Here are the relevant advice entries to draw from:
 
-    ${searchResults
+    ${responseResults
       .map(
         (result, index) => `
     Entry ${index + 1}:
@@ -146,7 +170,6 @@ export async function generateStage1Response(query: string): Promise<string> {
     Context: ${result.entry.adviceContext}
     Source: ${result.entry.sourceTitle}
     SourceType: ${result.entry.sourceType}
-    MsgSourceTitle: ${result.entry.msgSourceTitle}
     Link: ${result.entry.sourceLink}
     `,
       )
@@ -162,17 +185,13 @@ export async function generateStage1Response(query: string): Promise<string> {
       messages: [{ role: "user", content: contextPrompt }],
     });
 
-    console.log("Stage 1 completion:", JSON.stringify(completion, null, 2));
-
     if (!completion?.content?.[0]?.text) {
       throw new Error("Invalid response format from Claude API");
     }
 
-    const response = completion.content[0].text;
-    console.log("Stage 1 response:", response);
-    return response;
+    return completion.content[0].text;
   } catch (error: any) {
-    console.error("Stage 1 generation error:", error);
+    console.error("Stage 1 generation failed:", error);
     throw new Error(`Stage 1 generation failed: ${error.message}`);
   }
 }

@@ -250,7 +250,7 @@ export class VectorSearch {
         const categorySimilarity = categorySimilarities.get(entry.category) || 0;
 
         // Combined similarity score
-        const combinedSimilarity = (directSimilarity * 0.8) + (categorySimilarity * 0.2);
+        const combinedSimilarity = (directSimilarity * 1.0) + (categorySimilarity * 0.0);
 
         // Detailed logging for the first 3 entries
         if (index < 3) {
