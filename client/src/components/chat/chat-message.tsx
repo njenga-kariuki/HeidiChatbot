@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import Feedback from "./feedback";
-// import RelatedInsights from "./related-insights";
+import RelatedInsights from "./related-insights";
 import type { Message } from "@shared/schema";
 
 // Use the same formatting function as chat.tsx for consistency
@@ -59,11 +59,9 @@ export default function ChatMessage({ message, displayContent, onFeedbackSubmitt
           onFeedbackSubmitted={onFeedbackSubmitted}
         />
 
-        {/* Temporarily commented out for re-evaluation
         {message.metadata?.displayEntries && (
           <RelatedInsights insights={message.metadata.displayEntries} />
         )}
-        */}
       </CardContent>
     </Card>
   );

@@ -132,20 +132,33 @@ export async function generateStage1Response(query: string): Promise<string> {
     // Store display results in metadata
     const messages = await storage.getLatestMessages(1);
     if (messages.length > 0) {
+      const mappedEntries = displayResults.map(r => {
+        const rawData = DataLoader.getInstance().getRawAdviceByProcessed(
+          r.entry.advice,
+          r.entry.adviceContext
+        );
+
+        return {
+          entry: {
+            category: r.entry.category,
+            subCategory: r.entry.subCategory,
+            advice: r.entry.advice,
+            adviceContext: r.entry.adviceContext,
+            sourceTitle: r.entry.sourceTitle,
+            sourceType: r.entry.sourceType,
+            sourceLink: r.entry.sourceLink,
+            ...(rawData && {
+              rawAdvice: rawData.rawAdvice,
+              rawAdviceContext: rawData.rawAdviceContext
+            })
+          },
+          similarity: r.similarity
+        };
+      });
+
       await storage.updateMessage(messages[0].id, {
         metadata: {
-          displayEntries: displayResults.map(r => ({
-            entry: {
-              category: r.entry.category,
-              subCategory: r.entry.subCategory,
-              advice: r.entry.advice,
-              adviceContext: r.entry.adviceContext,
-              sourceTitle: r.entry.sourceTitle,
-              sourceType: r.entry.sourceType,
-              sourceLink: r.entry.sourceLink
-            },
-            similarity: r.similarity
-          }))
+          displayEntries: mappedEntries
         }
       });
     }

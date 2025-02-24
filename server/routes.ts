@@ -271,6 +271,18 @@ export function registerRoutes(app: Express): Server {
                 margin-right: 10px;
               }
               .limit-select { padding: 8px; margin-right: 10px; }
+              .toggle-switch {
+                display: inline-flex;
+                align-items: center;
+                margin-left: 10px;
+                cursor: pointer;
+              }
+              .toggle-switch input[type="checkbox"] {
+                margin-right: 5px;
+              }
+              .hidden-section {
+                display: none;
+              }
               .query-section {
                 margin-bottom: 12px;
                 padding-bottom: 8px;
@@ -358,11 +370,43 @@ export function registerRoutes(app: Express): Server {
                 .controls {
                   display: none;
                 }
-                table, th, td {
+                .no-print {
+                  display: none !important;
+                }
+                table {
+                  border-collapse: collapse;
+                  width: 100%;
+                }
+                table, td {
                   border-color: #999;
                 }
-                th {
+                td {
+                  border-top: none;
+                }
+                thead {
+                  display: none;
+                }
+                tr {
+                  break-inside: avoid;
+                  page-break-inside: avoid;
+                }
+                table {
+                  -webkit-print-color-adjust: exact;
+                  print-color-adjust: exact;
+                }
+                th { 
                   background-color: #f4f4f4 !important;
+                }
+                thead {
+                  display: table-header-group;
+                  break-inside: avoid;
+                }
+                thead tr {
+                  break-inside: avoid;
+                  break-after: avoid;
+                }
+                thead th {
+                  position: static !important;
                 }
                 .query-text {
                   font-size: 11pt;
@@ -390,12 +434,55 @@ export function registerRoutes(app: Express): Server {
                 <input type="checkbox" onchange="window.location.href='?' + new URLSearchParams({...Object.fromEntries(new URLSearchParams(window.location.search)), showFeedback: this.checked})" ${showFeedback ? 'checked' : ''}>
                 Show Feedback
               </label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="simplifiedView" onchange="toggleSimplifiedView()">
+                Simplified View
+              </label>
             </div>
+            <script>
+              function toggleSimplifiedView() {
+                const simplified = document.getElementById('simplifiedView').checked;
+                
+                // Handle visibility of sections
+                document.querySelectorAll('.advice-section, .response-section').forEach(el => {
+                  // Only hide if it's the advice section or the stage 1 response section
+                  if (el.classList.contains('advice-section') || 
+                      el.querySelector('.response-title')?.textContent.includes('Stage 1')) {
+                    el.classList.toggle('hidden-section', simplified);
+                  }
+                  
+                  // Update Stage 2 header text in simplified view
+                  const stage2Title = el.querySelector('.response-title');
+                  if (stage2Title?.textContent.includes('Stage 2')) {
+                    stage2Title.textContent = simplified ? 'Final Response' : 'Stage 2 Response - Style Narrative';
+                  }
+                });
+
+                // Update print styles
+                const style = document.getElementById('printStyles') || document.createElement('style');
+                style.id = 'printStyles';
+                style.textContent = simplified ? 
+                  '@media print { .advice-section, .response-section:has(.response-title:contains("Stage 1")) { display: none !important; } }' : '';
+                if (!document.getElementById('printStyles')) {
+                  document.head.appendChild(style);
+                }
+              }
+              // Restore toggle state from localStorage
+              document.addEventListener('DOMContentLoaded', () => {
+                const simplified = localStorage.getItem('simplifiedView') === 'true';
+                document.getElementById('simplifiedView').checked = simplified;
+                if (simplified) toggleSimplifiedView();
+              });
+              // Save toggle state to localStorage
+              document.getElementById('simplifiedView').addEventListener('change', (e) => {
+                localStorage.setItem('simplifiedView', e.target.checked);
+              });
+            </script>
             <table>
-              <thead>
+              <thead class="print-once">
                 <tr>
-                  <th>Chat Analysis</th>
-                  ${showFeedback ? '<th>Feedback</th>' : ''}
+                  <th class="no-print">Chat Analysis</th>
+                  ${showFeedback ? '<th class="no-print">Feedback</th>' : ''}
                 </tr>
               </thead>
               <tbody>

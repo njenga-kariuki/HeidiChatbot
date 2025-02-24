@@ -11,6 +11,8 @@ interface RelatedInsight {
     sourceTitle: string;
     sourceType?: string;
     sourceLink: string;
+    rawAdvice?: string;
+    rawAdviceContext?: string;
   };
   similarity: number;
 }
@@ -58,13 +60,13 @@ export default function RelatedInsights({ insights }: RelatedInsightsProps) {
                     {item.entry.category} → {item.entry.subCategory}
                   </div>
                   <div className="font-medium text-threshold-text-primary group-hover:text-threshold-orange transition-colors [text-transform:initial]">
-                    {item.entry.advice}
+                    {item.entry.rawAdvice || item.entry.advice}
                   </div>
                   {expandedItems.has(index) && (
                     <>
-                      {item.entry.adviceContext && (
+                      {(item.entry.rawAdviceContext || item.entry.adviceContext) && (
                         <div className="mt-4 text-sm text-threshold-text-muted [text-transform:initial] italic">
-                          {item.entry.adviceContext}
+                          {item.entry.rawAdviceContext || item.entry.adviceContext}
                         </div>
                       )}
                       {item.entry.sourceLink && (

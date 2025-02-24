@@ -2,6 +2,7 @@ import Papa from 'papaparse';
 import fs from 'fs';
 import { AdviceEntry, SearchAdviceEntry } from '@shared/schema';
 import path from 'path';
+import { vectorSearch } from '../services/vectorSearch';
 
 // Type guard for raw CSV data
 interface RawCSVRow {
@@ -229,16 +230,20 @@ export class DataLoader {
 
   public getData(): AdviceEntry[] {
     // Return processed version for vector search and chat
-    const processed = this.adviceData.map(entry => ({
-      category: entry.category,
-      subCategory: entry.subCategory,
-      advice: entry.advice,
-      adviceContext: entry.adviceContext,
-      sourceTitle: entry.sourceTitle,
-      sourceType: entry.sourceType,
-      sourceLink: entry.sourceLink,
-      msgSourceTitle: entry.msgSourceTitle,
-    }));
+    const processed = this.adviceData.map(entry => {
+      const processedEntry = {
+        category: entry.category,
+        subCategory: entry.subCategory,
+        advice: entry.advice,
+        adviceContext: entry.adviceContext,
+        sourceTitle: entry.sourceTitle,
+        sourceType: entry.sourceType,
+        sourceLink: entry.sourceLink,
+        msgSourceTitle: entry.msgSourceTitle,
+      };
+
+      return processedEntry;
+    });
 
     // Validate processed data
     console.log('getData Validation:', {
@@ -261,6 +266,22 @@ export class DataLoader {
 
   public getSubCategories(): string[] {
     return [...new Set(this.adviceData.map(entry => entry.subCategory))].sort();
+  }
+
+  public getRawAdviceByProcessed(processedAdvice: string, processedContext: string): { rawAdvice: string; rawAdviceContext: string } | undefined {
+    const entry = this.adviceData.find(e => 
+      e.advice === processedAdvice && 
+      e.adviceContext === processedContext
+    );
+
+    if (!entry) {
+      return undefined;
+    }
+
+    return {
+      rawAdvice: entry.rawAdvice,
+      rawAdviceContext: entry.rawAdviceContext
+    };
   }
 
   public searchAdvice(params: {

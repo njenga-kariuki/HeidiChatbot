@@ -303,3 +303,6 @@ export class VectorSearch {
     }
   }
 }
+
+// Create and export singleton instance
+export const vectorSearch = new VectorSearch(process.env.OPENAI_API_KEY || '');
