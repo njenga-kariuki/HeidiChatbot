@@ -51,7 +51,10 @@ This project was intentionally built without using high-level AI frameworks like
 - Streaming response generation
 - Comprehensive error handling and rate limiting
 
-## Project Structure
+# Project Structure
+Project Structure
+
+```
 ├── client/              # Frontend React application
 ├── server/              # Backend Express server
 │   ├── services/        # Core services (Claude, VectorSearch, DataLoader)
@@ -60,6 +63,7 @@ This project was intentionally built without using high-level AI frameworks like
 ├── shared/              # Shared types and utilities
 ├── dist/                # Compiled code
 └── package.json         # Project dependencies
+```
 
 ## Acknowledgements
 
