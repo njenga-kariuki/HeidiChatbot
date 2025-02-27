@@ -52,7 +52,7 @@ export default function Search() {
 
   // Render the main search interface
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <Card className="p-6">
         <div className="space-y-4">
           <div className="relative">
@@ -109,6 +109,15 @@ export default function Search() {
           )}
         </div>
       </Card>
+
+      {/* Search Results Count Indicator */}
+      {data && !isLoading && (
+        <div className="text-sm text-threshold-text-muted mt-1 mb-1">
+          {data.total > 0 
+            ? `${data.total} ${data.total === 1 ? 'result' : 'results'}`
+            : 'No results found'}
+        </div>
+      )}
 
       {/* Results Section */}
       {error ? (
