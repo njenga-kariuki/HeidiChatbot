@@ -52,7 +52,6 @@ This project was intentionally built without using high-level AI frameworks like
 - Comprehensive error handling and rate limiting
 
 # Project Structure
-Project Structure
 
 ```
 ├── client/              # Frontend React application
@@ -68,5 +67,4 @@ Project Structure
 ## Acknowledgements
 
 Special thanks to Heidi Roizen for her entrepreneurial wisdom that forms the foundation of this advisory system.
-
 

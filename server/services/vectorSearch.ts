@@ -282,7 +282,7 @@ export class VectorSearch {
       // Apply threshold and get top results
       const results = sortedResults
         .filter(result => result.similarity >= threshold)
-        .slice(0, 5);  // Get top 5 results
+        .slice(0, 10);  // Get top 10 results
 
       console.log(`Found ${results.length} results above threshold ${threshold}`);
 
